@@ -14,3 +14,23 @@ class DatosNacimiento(BaseModel):
 class RespuestaCartaNatal(BaseModel):
     metadata: dict
     calculo: dict
+
+
+
+class InterpretacionCompleta(BaseModel):
+    overview: str = Field(..., min_length=100, description="Resumen general que amarra toda la carta")
+    sol: str = Field(..., min_length=50)
+    luna: str = Field(..., min_length=50)
+    mercurio: str = Field(..., min_length=50)
+    venus: str = Field(..., min_length=50)
+    marte: str = Field(..., min_length=50)
+    jupiter: str = Field(..., min_length=50)
+    saturno: str = Field(..., min_length=50)
+    urano: str = Field(..., min_length=50)
+    neptuno: str = Field(..., min_length=50)
+    pluton: str = Field(..., min_length=50)
+    nodo_norte: str = Field(..., min_length=50)
+    quiron: str = Field(..., min_length=50)
+    ascendente: str = Field(..., min_length=50)
+    medio_cielo: str = Field(..., min_length=50)
+    conclusion: str = Field(..., min_length=80, description="Cierre que integra los temas principales de la carta")

@@ -7,6 +7,9 @@ from app.services.report_service import generar_html_reporte
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
 
+from app.services.interpretation_service import interpretar_carta_completa
+
+
 router = APIRouter()
 
 
@@ -101,3 +104,19 @@ def generar_carta_natal_pdf(datos: DatosNacimiento):
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/test-interpretacion-completa")
+async def test_interpretacion_completa(datos: DatosNacimiento):
+    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+    dia_juliano = calcular_dia_juliano(fecha_utc)
+    resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
+    posiciones = calcular_posiciones_planetarias(dia_juliano, datos.latitud, resultado_casas["_armc"])
+
+    calculo = {
+        "planetas": posiciones,
+        "puntos_angulares": resultado_casas["puntos_angulares"],
+    }
+
+    interpretacion = await interpretar_carta_completa(calculo)
+    return {"interpretacion": interpretacion}

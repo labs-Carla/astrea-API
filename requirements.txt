@@ -4,3 +4,4 @@ pyswisseph
 pydantic
 pydantic-settings
 timezonefinder
+jinja2

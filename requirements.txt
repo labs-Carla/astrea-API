@@ -6,3 +6,4 @@ pydantic-settings
 timezonefinder
 jinja2
 playwright
+anthropic

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carta Natal</title>
+    <style>
+        body {
+            font-family: Georgia, serif;
+            margin: 40px;
+            color: #222;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        h2 {
+            margin-top: 30px;
+            color: #444;
+            border-bottom: 1px solid #ccc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .retrogrado {
+            color: #b00;
+            font-style: italic;
+        }
+        .metadata {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Carta Natal</h1>
+
+    <div class="metadata">
+        Fecha local: {{ metadata.fecha_hora_local }}<br>
+        Fecha UTC: {{ metadata.fecha_hora_utc }}<br>
+        Latitud: {{ metadata.latitud }} | Longitud: {{ metadata.longitud }}
+    </div>
+
+    <h2>Puntos Angulares</h2>
+    <table>
+        <tr><th>Punto</th><th>Signo</th><th>Grado</th></tr>
+        {% for nombre, datos in puntos_angulares.items() %}
+        <tr>
+            <td>{{ nombre }}</td>
+            <td>{{ datos.signo }}</td>
+            <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Planetas</h2>
+    <table>
+        <tr><th>Planeta</th><th>Signo</th><th>Grado</th><th>Casa</th><th>Estado</th></tr>
+        {% for nombre, datos in planetas.items() %}
+        <tr>
+            <td>{{ nombre }}</td>
+            <td>{{ datos.signo }}</td>
+            <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
+            <td>{{ datos.casa }}</td>
+            <td class="{{ 'retrogrado' if datos.retrogrado else '' }}">
+                {{ 'Retrógrado' if datos.retrogrado else 'Directo' }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Casas</h2>
+    <table>
+        <tr><th>Casa</th><th>Signo</th><th>Grado</th></tr>
+        {% for numero, datos in casas.items() %}
+        <tr>
+            <td>{{ numero }}</td>
+            <td>{{ datos.signo }}</td>
+            <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>

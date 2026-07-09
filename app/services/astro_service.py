@@ -1,5 +1,10 @@
 import swisseph as swe
+import os
 from app.core.config import PLANETAS, SIGNOS
+
+_RUTA_EPHE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ephe"))
+swe.set_ephe_path(_RUTA_EPHE)
+print(f"[DEBUG] Ruta ephemeris configurada: {_RUTA_EPHE}")
 
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED
 
@@ -59,6 +64,7 @@ def calcular_casa_de_planeta(dia_juliano: float, latitud: float, armc: float,
 
 
 def calcular_posiciones_planetarias(dia_juliano: float, latitud: float, armc: float) -> dict:
+    swe.set_ephe_path(_RUTA_EPHE)
     posiciones = {}
 
     for nombre, codigo in PLANETAS.items():

@@ -143,6 +143,92 @@
     page-break-inside: avoid;
   }
 
+  /* ===== Página "Tu carta en una mirada" ===== */
+
+  .mirada-esencia {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--azul);
+    text-align: center;
+    margin: 10px 0 34px 0;
+  }
+
+  .mirada-grid {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .mirada-card {
+    flex: 1;
+    background-color: var(--papel-destacado);
+    border: 1px solid var(--linea);
+    border-radius: 4px;
+    padding: 20px 24px;
+  }
+
+  .mirada-card-titulo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ocre);
+    margin-bottom: 14px;
+  }
+
+  .mirada-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mirada-lista li {
+    font-size: 13.5px;
+    color: var(--tinta);
+    margin-bottom: 10px;
+    padding-left: 22px;
+    position: relative;
+  }
+
+  .mirada-lista.talentos li::before {
+    content: "✔";
+    position: absolute;
+    left: 0;
+    color: var(--azul);
+  }
+
+  .mirada-lista.desafios li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--ocre);
+  }
+
+  .mirada-mision {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 15px;
+    background-color: var(--papel-destacado);
+    padding: 24px 28px;
+    border-left: 3px solid var(--azul);
+    margin: 10px 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .mirada-mision-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--azul);
+    font-style: normal;
+    margin-bottom: 10px;
+    display: block;
+  }
+
   /* ===== Página "Cómo leer este reporte" ===== */
 
   .como-leer-texto {
@@ -416,6 +502,40 @@
       <span>{{ metadata.latitud }}, {{ metadata.longitud }}</span>
     </div>
   </div>
+
+  <!-- ================= TU CARTA EN UNA MIRADA ================= -->
+  {% if interpretacion.carta_en_una_mirada %}
+  <div class="capitulo">
+    <h2 class="capitulo-titulo">Tu carta en una mirada</h2>
+
+    <div class="mirada-esencia">{{ interpretacion.carta_en_una_mirada.esencia }}</div>
+
+    <div class="mirada-grid">
+      <div class="mirada-card">
+        <div class="mirada-card-titulo">Tus mayores talentos</div>
+        <ul class="mirada-lista talentos">
+          {% for talento in interpretacion.carta_en_una_mirada.talentos %}
+          <li>{{ talento }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="mirada-card">
+        <div class="mirada-card-titulo">Tus mayores desafíos</div>
+        <ul class="mirada-lista desafios">
+          {% for desafio in interpretacion.carta_en_una_mirada.desafios %}
+          <li>{{ desafio }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="mirada-mision">
+      <span class="mirada-mision-label">Tu misión</span>
+      {{ interpretacion.carta_en_una_mirada.mision }}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- ================= CÓMO LEER ESTE REPORTE (estático, no generado por IA) ================= -->
   <div class="capitulo">

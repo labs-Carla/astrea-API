@@ -16,8 +16,34 @@ class RespuestaCartaNatal(BaseModel):
     calculo: dict
 
 
+class CartaEnUnaMirada(BaseModel):
+    """
+    Resumen ejecutivo de la carta: página breve pensada para que el lector
+    entienda el eje principal de su carta en menos de dos minutos, sin
+    repetir el desarrollo que aparece más adelante en overview/capítulos.
+    """
+    esencia: str = Field(
+        ..., min_length=10, max_length=80,
+        description="3-4 conceptos breves que definan el eje principal de la carta, ej. 'Analítica · Transformadora · Sensible'"
+    )
+    talentos: list[str] = Field(
+        ..., min_length=3, max_length=4,
+        description="3-4 fortalezas breves (pocas palabras cada una), derivadas de la carta"
+    )
+    desafios: list[str] = Field(
+        ..., min_length=3, max_length=4,
+        description="3-4 desafíos breves (pocas palabras cada uno), derivados de la carta"
+    )
+    mision: str = Field(
+        ..., min_length=80, max_length=900,
+        description="Párrafo breve que sintetiza el camino evolutivo de la carta"
+    )
+
 
 class InterpretacionCompleta(BaseModel):
+    carta_en_una_mirada: CartaEnUnaMirada = Field(
+        ..., description="Resumen ejecutivo de la carta, para la página inicial 'Tu carta en una mirada'"
+    )
     overview: str = Field(..., min_length=100, description="Resumen general que amarra toda la carta")
     lectura_elementos_dignidades: str = Field(
         ..., min_length=80,

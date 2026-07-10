@@ -50,4 +50,15 @@ DISPOSITORES_MODERNOS = {
     "Piscis": "Neptuno",
 }
 
+# Aspectos mayores: nombre -> (ángulo exacto en grados, orbe permitido en grados)
+ASPECTOS_MAYORES = {
+    "Conjuncion": 0,
+    "Sextil": 60,
+    "Cuadratura": 90,
+    "Trigono": 120,
+    "Oposicion": 180,
+}
+
+ORBE_DEFAULT = 8  # grados de tolerancia alrededor del ángulo exacto
+
 

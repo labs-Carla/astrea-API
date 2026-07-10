@@ -37,12 +37,14 @@ def generar_html_reporte(metadata: dict, calculo: dict, interpretacion: dict) ->
         planetas_con_interpretacion[nombre] = {**datos, "interpretacion": texto}
 
     html = template.render(
-        metadata=metadata,
-        planetas=planetas_con_interpretacion,
-        casas=calculo["casas"],
-        puntos_angulares=calculo["puntos_angulares"],
-        aspectos=calculo.get("aspectos", []),
-        interpretacion=interpretacion,
-    )
+    metadata=metadata,
+    planetas=planetas_con_interpretacion,
+    casas=calculo["casas"],
+    puntos_angulares=calculo["puntos_angulares"],
+    aspectos=calculo.get("aspectos", []),
+    dignidades=calculo.get("dignidades", {}),
+    elementos_y_modalidades=calculo.get("elementos_y_modalidades", {}),
+    interpretacion=interpretacion,
+)
 
     return html

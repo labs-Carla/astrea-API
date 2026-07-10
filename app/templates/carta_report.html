@@ -18,22 +18,59 @@
 
   * { box-sizing: border-box; }
 
-  body {
-    font-family: 'Lora', serif;
-    background-color: var(--papel);
-    color: var(--tinta);
-    margin: 0;
-    padding: 50px 55px;
-    line-height: 1.6;
-    font-size: 14px;
+  @page {
+    size: A4;
+    margin: 20mm 18mm 18mm 18mm;
   }
 
-  /* --- Portada / encabezado --- */
+  @page :first {
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--papel);
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  @page {
+    background-color: var(--papel);
+  }
+
+  body {
+    font-family: 'Lora', serif;
+    color: var(--tinta);
+    line-height: 1.6;
+    font-size: 14px;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .capitulo {
+    padding: 0;
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .capitulo:first-child {
+    break-before: avoid;
+    page-break-before: avoid;
+  }
+
   .portada {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding-bottom: 30px;
-    margin-bottom: 40px;
-    border-bottom: 1px solid var(--linea);
+    padding: 50px 55px;
   }
 
   .eyebrow {
@@ -42,14 +79,14 @@
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--azul);
-    margin-bottom: 10px;
+    margin-bottom: 16px;
   }
 
   h1.titulo-principal {
     font-family: 'Cormorant Garamond', serif;
     font-weight: 600;
-    font-size: 42px;
-    margin: 0 0 12px 0;
+    font-size: 48px;
+    margin: 0 0 20px 0;
     color: var(--tinta);
     letter-spacing: 0.5px;
   }
@@ -62,20 +99,37 @@
   }
 
   .metadata span {
-    margin: 0 10px;
+    display: block;
+    margin: 4px 0;
   }
 
-  /* --- Secciones --- */
-  h2.seccion {
+  .capitulo-numero {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ocre);
+    margin-bottom: 8px;
+    break-after: avoid;
+  }
+
+  h2.capitulo-titulo {
     font-family: 'Cormorant Garamond', serif;
     font-weight: 600;
-    font-size: 24px;
+    font-size: 32px;
     color: var(--azul);
-    margin-top: 45px;
-    margin-bottom: 16px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--linea);
+    margin: 0 0 30px 0;
     letter-spacing: 0.3px;
+    break-after: avoid;
+  }
+
+  h2.capitulo-titulo::after {
+    content: "";
+    display: block;
+    width: 70px;
+    height: 2px;
+    background-color: var(--azul);
+    margin-top: 14px;
   }
 
   .overview, .conclusion {
@@ -83,18 +137,24 @@
     font-style: italic;
     font-size: 15px;
     background-color: var(--papel-destacado);
-    padding: 22px 26px;
+    padding: 24px 28px;
     border-left: 3px solid var(--azul);
-    margin: 18px 0;
+    margin: 10px 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
-  /* --- Tablas --- */
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 8px;
+    margin-top: 12px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
+  }
+
+  thead, tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   th {
@@ -117,17 +177,25 @@
     color: var(--ocre);
   }
 
-  /* --- Bloques de planetas --- */
   .planeta-bloque {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
+    padding: 24px 28px;
+    background-color: var(--papel-destacado);
+    border: 1px solid var(--linea);
+    border-radius: 4px;
+    break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .planeta-bloque:last-child {
+    margin-bottom: 0;
   }
 
   .planeta-encabezado {
     display: flex;
     align-items: baseline;
     gap: 10px;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
   }
 
   .planeta-simbolo {
@@ -149,7 +217,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 10.5px;
     color: var(--tinta-suave);
-    margin-bottom: 8px;
+    margin-bottom: 14px;
     letter-spacing: 0.3px;
   }
 
@@ -158,16 +226,16 @@
     color: var(--tinta);
   }
 
-  /* --- Disclaimer --- */
   .disclaimer {
-    margin-top: 55px;
-    padding-top: 18px;
+    margin-top: 60px;
+    padding-top: 20px;
     border-top: 1px solid var(--linea);
     font-family: 'JetBrains Mono', monospace;
     font-size: 9.5px;
     color: var(--tinta-suave);
     text-align: center;
     line-height: 1.7;
+    break-inside: avoid;
   }
 </style>
 </head>
@@ -177,108 +245,128 @@
     <div class="eyebrow">Carta Natal · Reporte Astrológico</div>
     <h1 class="titulo-principal">Mapa del Cielo Natal</h1>
     <div class="metadata">
-      <span>{{ metadata.fecha_hora_local }}</span> ·
-      <span>UTC {{ metadata.fecha_hora_utc }}</span> ·
+      <span>{{ metadata.fecha_hora_local }}</span>
+      <span>UTC {{ metadata.fecha_hora_utc }}</span>
       <span>{{ metadata.latitud }}, {{ metadata.longitud }}</span>
     </div>
   </div>
 
   {% if interpretacion.overview %}
-  <h2 class="seccion">Visión General</h2>
-  <div class="overview">{{ interpretacion.overview }}</div>
-  {% endif %}
-
-  <h2 class="seccion">Puntos Angulares</h2>
-  <table>
-    <tr><th>Punto</th><th>Signo</th><th>Grado</th></tr>
-    {% for nombre, datos in puntos_angulares.items() %}
-    <tr>
-      <td>{{ nombre }}</td>
-      <td>{{ datos.signo }}</td>
-      <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
-    </tr>
-    {% endfor %}
-  </table>
-
-  {% if interpretacion.ascendente %}
-  <div class="planeta-bloque">
-    <div class="planeta-encabezado">
-      <span class="planeta-simbolo">Asc</span>
-      <h3 class="planeta-nombre">Ascendente</h3>
-    </div>
-    <p class="interpretacion-texto">{{ interpretacion.ascendente }}</p>
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo I</div>
+    <h2 class="capitulo-titulo">Visión General</h2>
+    <div class="overview">{{ interpretacion.overview }}</div>
   </div>
   {% endif %}
 
-  {% if interpretacion.medio_cielo %}
-  <div class="planeta-bloque">
-    <div class="planeta-encabezado">
-      <span class="planeta-simbolo">MC</span>
-      <h3 class="planeta-nombre">Medio Cielo</h3>
-    </div>
-    <p class="interpretacion-texto">{{ interpretacion.medio_cielo }}</p>
-  </div>
-  {% endif %}
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo II</div>
+    <h2 class="capitulo-titulo">Puntos Angulares</h2>
 
-  <h2 class="seccion">Planetas</h2>
-  {% set simbolos = {
-    "Sol": "☉", "Luna": "☽", "Mercurio": "☿", "Venus": "♀", "Marte": "♂",
-    "Jupiter": "♃", "Saturno": "♄", "Urano": "♅", "Neptuno": "♆", "Pluton": "♇",
-    "NodoNorte": "☊", "Quiron": "⚷"
-  } %}
-  {% for nombre, datos in planetas.items() %}
-  <div class="planeta-bloque">
-    <div class="planeta-encabezado">
-      <span class="planeta-simbolo">{{ simbolos.get(nombre, "•") }}</span>
-      <h3 class="planeta-nombre">{{ nombre }}</h3>
+    <table>
+      <tr><th>Punto</th><th>Signo</th><th>Grado</th></tr>
+      {% for nombre, datos in puntos_angulares.items() %}
+      <tr>
+        <td>{{ nombre }}</td>
+        <td>{{ datos.signo }}</td>
+        <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    {% if interpretacion.ascendente %}
+    <div class="planeta-bloque" style="margin-top: 30px;">
+      <div class="planeta-encabezado">
+        <span class="planeta-simbolo">Asc</span>
+        <h3 class="planeta-nombre">Ascendente</h3>
+      </div>
+      <p class="interpretacion-texto">{{ interpretacion.ascendente }}</p>
     </div>
-    <div class="planeta-datos">
-      {{ datos.signo }} {{ "%.2f"|format(datos.grado_en_signo) }}° · Casa {{ datos.casa }}
-      {% if datos.retrogrado %}<span class="retrogrado">· Retrógrado</span>{% endif %}
+    {% endif %}
+
+    {% if interpretacion.medio_cielo %}
+    <div class="planeta-bloque">
+      <div class="planeta-encabezado">
+        <span class="planeta-simbolo">MC</span>
+        <h3 class="planeta-nombre">Medio Cielo</h3>
+      </div>
+      <p class="interpretacion-texto">{{ interpretacion.medio_cielo }}</p>
     </div>
-    {% if datos.interpretacion %}
-    <p class="interpretacion-texto">{{ datos.interpretacion }}</p>
     {% endif %}
   </div>
-  {% endfor %}
+
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo III</div>
+    <h2 class="capitulo-titulo">Planetas</h2>
+
+    {% set simbolos = {
+      "Sol": "☉", "Luna": "☽", "Mercurio": "☿", "Venus": "♀", "Marte": "♂",
+      "Jupiter": "♃", "Saturno": "♄", "Urano": "♅", "Neptuno": "♆", "Pluton": "♇",
+      "NodoNorte": "☊", "Quiron": "⚷"
+    } %}
+    {% for nombre, datos in planetas.items() %}
+    <div class="planeta-bloque">
+      <div class="planeta-encabezado">
+        <span class="planeta-simbolo">{{ simbolos.get(nombre, "•") }}</span>
+        <h3 class="planeta-nombre">{{ nombre }}</h3>
+      </div>
+      <div class="planeta-datos">
+        {{ datos.signo }} {{ "%.2f"|format(datos.grado_en_signo) }}° · Casa {{ datos.casa }}
+        {% if datos.retrogrado %}<span class="retrogrado">· Retrógrado</span>{% endif %}
+      </div>
+      {% if datos.interpretacion %}
+      <p class="interpretacion-texto">{{ datos.interpretacion }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
 
   {% if aspectos %}
-  <h2 class="seccion">Aspectos</h2>
-  <table>
-    <tr><th>Punto A</th><th>Aspecto</th><th>Punto B</th><th>Orbe</th></tr>
-    {% for asp in aspectos %}
-    <tr>
-      <td>{{ asp.punto_a }}</td>
-      <td>{{ asp.aspecto }}</td>
-      <td>{{ asp.punto_b }}</td>
-      <td>{{ asp.orbe_usado }}°</td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo IV</div>
+    <h2 class="capitulo-titulo">Aspectos</h2>
+    <table>
+      <tr><th>Punto A</th><th>Aspecto</th><th>Punto B</th><th>Orbe</th></tr>
+      {% for asp in aspectos %}
+      <tr>
+        <td>{{ asp.punto_a }}</td>
+        <td>{{ asp.aspecto }}</td>
+        <td>{{ asp.punto_b }}</td>
+        <td>{{ asp.orbe_usado }}°</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
   {% endif %}
 
-  <h2 class="seccion">Casas</h2>
-  <table>
-    <tr><th>Casa</th><th>Signo</th><th>Grado</th></tr>
-    {% for numero, datos in casas.items() %}
-    <tr>
-      <td>{{ numero }}</td>
-      <td>{{ datos.signo }}</td>
-      <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo V</div>
+    <h2 class="capitulo-titulo">Casas</h2>
+    <table>
+      <tr><th>Casa</th><th>Signo</th><th>Grado</th></tr>
+      {% for numero, datos in casas.items() %}
+      <tr>
+        <td>{{ numero }}</td>
+        <td>{{ datos.signo }}</td>
+        <td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
 
   {% if interpretacion.conclusion %}
-  <h2 class="seccion">Conclusión</h2>
-  <div class="conclusion">{{ interpretacion.conclusion }}</div>
-  {% endif %}
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo VI</div>
+    <h2 class="capitulo-titulo">Conclusión</h2>
+    <div class="conclusion">{{ interpretacion.conclusion }}</div>
 
-  <div class="disclaimer">
-    Esta interpretación fue generada con asistencia de inteligencia artificial como guía simbólica<br>
-    de autoconocimiento. No constituye consejo profesional, médico, legal ni financiero.<br>
-    Para decisiones importantes de vida, consulta siempre con un profesional cualificado.
+    <div class="disclaimer">
+      Esta interpretación fue generada con asistencia de inteligencia artificial como guía simbólica<br>
+      de autoconocimiento. No constituye consejo profesional, médico, legal ni financiero.<br>
+      Para decisiones importantes de vida, consulta siempre con un profesional cualificado.
+    </div>
   </div>
+  {% endif %}
 
 </body>
 </html>

@@ -6,6 +6,8 @@ async def generar_pdf_desde_html(html: str) -> bytes:
     Convierte HTML a PDF (formato A4) usando Chromium headless vía Playwright.
     Usa la API asíncrona porque se ejecuta dentro de un endpoint async de FastAPI
     (necesario para poder usar await con la llamada a Claude en el mismo flujo).
+    Sin márgenes de página: el padding vive en el propio HTML/CSS (body),
+    para que el fondo de papel llegue hasta el borde real de la hoja.
     Retorna los bytes del PDF, listos para guardar o enviar como respuesta HTTP.
     """
     async with async_playwright() as p:
@@ -16,7 +18,7 @@ async def generar_pdf_desde_html(html: str) -> bytes:
         pdf_bytes = await pagina.pdf(
             format="A4",
             print_background=True,
-            margin={"top": "20mm", "bottom": "20mm", "left": "15mm", "right": "15mm"},
+            margin={"top": "0mm", "bottom": "0mm", "left": "0mm", "right": "0mm"},
         )
 
         await navegador.close()

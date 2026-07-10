@@ -50,34 +50,32 @@ def generar_carta_natal(datos: DatosNacimiento):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/html", response_class=HTMLResponse)
-def generar_carta_natal_html(datos: DatosNacimiento):
+def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
-        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
-        dia_juliano = calcular_dia_juliano(fecha_utc)
-
-        resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
-        posiciones = calcular_posiciones_planetarias(
-            dia_juliano, datos.latitud, resultado_casas["_armc"]
+        carta_existente = buscar_carta_existente(
+            db, datos.fecha_hora_local, datos.latitud, datos.longitud
         )
 
+        if carta_existente is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Esta carta no ha sido generada todavía. Usa /carta-natal/pdf primero.",
+            )
+
+        calculo, interpretacion = deserializar_carta(carta_existente)
         metadata = {
             "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-            "fecha_hora_utc": fecha_utc.isoformat(),
+            "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
             "latitud": datos.latitud,
             "longitud": datos.longitud,
         }
-        calculo = {
-            "planetas": posiciones,
-            "casas": resultado_casas["casas"],
-            "puntos_angulares": resultado_casas["puntos_angulares"],
-        }
 
-        html = generar_html_reporte(metadata, calculo)
+        html = generar_html_reporte(metadata, calculo, interpretacion)
         return HTMLResponse(content=html)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
+        
 @router.post("/carta-natal/pdf")
 async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:

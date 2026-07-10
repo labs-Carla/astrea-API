@@ -74,7 +74,7 @@ def generar_carta_natal_html(datos: DatosNacimiento):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/pdf")
-def generar_carta_natal_pdf(datos: DatosNacimiento):
+async def generar_carta_natal_pdf(datos: DatosNacimiento):
     try:
         fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
         dia_juliano = calcular_dia_juliano(fecha_utc)
@@ -83,6 +83,15 @@ def generar_carta_natal_pdf(datos: DatosNacimiento):
         posiciones = calcular_posiciones_planetarias(
             dia_juliano, datos.latitud, resultado_casas["_armc"]
         )
+
+        # Armamos los puntos para aspectos (planetas + Ascendente + Medio Cielo)
+        puntos_para_aspectos = {
+            nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
+        }
+        puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
+        puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
+
+        aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
 
         metadata = {
             "fecha_hora_local": datos.fecha_hora_local.isoformat(),
@@ -94,10 +103,14 @@ def generar_carta_natal_pdf(datos: DatosNacimiento):
             "planetas": posiciones,
             "casas": resultado_casas["casas"],
             "puntos_angulares": resultado_casas["puntos_angulares"],
+            "aspectos": aspectos,
         }
 
-        html = generar_html_reporte(metadata, calculo)
-        pdf_bytes = generar_pdf_desde_html(html)
+        interpretacion = await interpretar_carta_completa(calculo)
+
+        html = generar_html_reporte(metadata, calculo, interpretacion)
+        pdf_bytes = await generar_pdf_desde_html(html)
+
 
         return Response(
             content=pdf_bytes,
@@ -108,8 +121,7 @@ def generar_carta_natal_pdf(datos: DatosNacimiento):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-@router.post("/test-interpretacion-completa")
+"""@router.post("/test-interpretacion-completa")
 async def test_interpretacion_completa(datos: DatosNacimiento):
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
     dia_juliano = calcular_dia_juliano(fecha_utc)
@@ -140,4 +152,4 @@ def test_aspectos(datos: DatosNacimiento):
 
     aspectos = calcular_todos_los_aspectos(puntos)
 
-    return {"total_aspectos": len(aspectos), "aspectos": aspectos}
+    return {"total_aspectos": len(aspectos), "aspectos": aspectos}"""

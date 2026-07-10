@@ -7,3 +7,4 @@ timezonefinder
 jinja2
 playwright
 anthropic
+sqlalchemy

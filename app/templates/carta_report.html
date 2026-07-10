@@ -143,6 +143,106 @@
     page-break-inside: avoid;
   }
 
+  .panorama-grid {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .panorama-card {
+    flex: 1;
+    background-color: var(--papel-destacado);
+    border: 1px solid var(--linea);
+    border-radius: 4px;
+    padding: 18px 22px;
+  }
+
+  .panorama-titulo {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--azul);
+    margin-bottom: 12px;
+  }
+
+  .panorama-fila {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+
+  .panorama-etiqueta {
+    width: 60px;
+    color: var(--tinta-suave);
+  }
+
+  .panorama-barra {
+    flex: 1;
+    height: 8px;
+    background-color: var(--linea);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .panorama-relleno {
+    display: block;
+    height: 100%;
+    background-color: var(--azul);
+    border-radius: 4px;
+  }
+
+  .panorama-valor {
+    width: 16px;
+    text-align: right;
+    color: var(--tinta);
+  }
+
+  .panorama-dominante {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ocre);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .dignidades-card {
+    margin-top: 20px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .lectura-patron {
+    margin-top: 24px;
+    padding: 22px 26px;
+    background-color: transparent;
+    border: 1px solid var(--ocre);
+    border-radius: 4px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .lectura-patron-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ocre);
+    margin-bottom: 10px;
+  }
+
+  .lectura-patron-texto {
+    font-family: 'Lora', serif;
+    font-style: normal;
+    font-size: 14px;
+    text-align: justify;
+    color: var(--tinta);
+    margin: 0;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -250,6 +350,7 @@
     </div>
   </div>
 
+  <!-- ================= CAPÍTULO I: VISIÓN GENERAL ================= -->
   {% if interpretacion.overview %}
   <div class="capitulo">
     <div class="capitulo-numero">Capítulo I</div>
@@ -258,8 +359,72 @@
   </div>
   {% endif %}
 
+  <!-- ================= CAPÍTULO II: ELEMENTOS Y DIGNIDADES ================= -->
+  {% if elementos_y_modalidades or dignidades %}
   <div class="capitulo">
     <div class="capitulo-numero">Capítulo II</div>
+    <h2 class="capitulo-titulo">Elementos y Dignidades</h2>
+
+    {% if elementos_y_modalidades %}
+    <div class="panorama-grid">
+      <div class="panorama-card">
+        <div class="panorama-titulo">Elementos</div>
+        {% for elemento, cantidad in elementos_y_modalidades.conteo_elementos.items() %}
+        <div class="panorama-fila">
+          <span class="panorama-etiqueta">{{ elemento }}</span>
+          <span class="panorama-barra">
+            <span class="panorama-relleno" style="width: {{ cantidad * 20 }}px;"></span>
+          </span>
+          <span class="panorama-valor">{{ cantidad }}</span>
+        </div>
+        {% endfor %}
+        <div class="panorama-dominante">Dominante: {{ elementos_y_modalidades.elemento_dominante }}</div>
+      </div>
+
+      <div class="panorama-card">
+        <div class="panorama-titulo">Modalidades</div>
+        {% for modalidad, cantidad in elementos_y_modalidades.conteo_modalidades.items() %}
+        <div class="panorama-fila">
+          <span class="panorama-etiqueta">{{ modalidad }}</span>
+          <span class="panorama-barra">
+            <span class="panorama-relleno" style="width: {{ cantidad * 20 }}px;"></span>
+          </span>
+          <span class="panorama-valor">{{ cantidad }}</span>
+        </div>
+        {% endfor %}
+        <div class="panorama-dominante">Dominante: {{ elementos_y_modalidades.modalidad_dominante }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if dignidades %}
+    <div class="dignidades-card">
+      <div class="panorama-titulo">Dignidades Esenciales</div>
+      <table>
+        <tr><th>Planeta</th><th>Signo</th><th>Dignidad</th></tr>
+        {% for nombre, info in dignidades.items() %}
+        <tr>
+          <td>{{ nombre }}</td>
+          <td>{{ info.signo }}</td>
+          <td>{{ info.dignidad }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if interpretacion.lectura_elementos_dignidades %}
+    <div class="lectura-patron">
+      <div class="lectura-patron-label">Lectura del Patrón</div>
+      <p class="lectura-patron-texto">{{ interpretacion.lectura_elementos_dignidades }}</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ================= CAPÍTULO III: PUNTOS ANGULARES ================= -->
+  <div class="capitulo">
+    <div class="capitulo-numero">Capítulo III</div>
     <h2 class="capitulo-titulo">Puntos Angulares</h2>
 
     <table>
@@ -294,8 +459,9 @@
     {% endif %}
   </div>
 
+  <!-- ================= CAPÍTULO IV: PLANETAS ================= -->
   <div class="capitulo">
-    <div class="capitulo-numero">Capítulo III</div>
+    <div class="capitulo-numero">Capítulo IV</div>
     <h2 class="capitulo-titulo">Planetas</h2>
 
     {% set simbolos = {
@@ -320,9 +486,10 @@
     {% endfor %}
   </div>
 
+  <!-- ================= CAPÍTULO V: ASPECTOS ================= -->
   {% if aspectos %}
   <div class="capitulo">
-    <div class="capitulo-numero">Capítulo IV</div>
+    <div class="capitulo-numero">Capítulo V</div>
     <h2 class="capitulo-titulo">Aspectos</h2>
     <table>
       <tr><th>Punto A</th><th>Aspecto</th><th>Punto B</th><th>Orbe</th></tr>
@@ -338,8 +505,9 @@
   </div>
   {% endif %}
 
+  <!-- ================= CAPÍTULO VI: CASAS ================= -->
   <div class="capitulo">
-    <div class="capitulo-numero">Capítulo V</div>
+    <div class="capitulo-numero">Capítulo VI</div>
     <h2 class="capitulo-titulo">Casas</h2>
     <table>
       <tr><th>Casa</th><th>Signo</th><th>Grado</th></tr>
@@ -353,9 +521,10 @@
     </table>
   </div>
 
+  <!-- ================= CAPÍTULO VII: CONCLUSIÓN ================= -->
   {% if interpretacion.conclusion %}
   <div class="capitulo">
-    <div class="capitulo-numero">Capítulo VI</div>
+    <div class="capitulo-numero">Capítulo VII</div>
     <h2 class="capitulo-titulo">Conclusión</h2>
     <div class="conclusion">{{ interpretacion.conclusion }}</div>
 

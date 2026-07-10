@@ -61,4 +61,78 @@ ASPECTOS_MAYORES = {
 
 ORBE_DEFAULT = 8  # grados de tolerancia alrededor del ángulo exacto
 
+# --- Dignidades esenciales ---
+# Cada planeta tiene: domicilio (uno o dos signos), exaltación (un signo),
+# caída (el opuesto a la exaltación) y exilio (el opuesto al domicilio).
+
+DOMICILIOS = {
+    "Sol": ["Leo"],
+    "Luna": ["Cancer"],
+    "Mercurio": ["Geminis", "Virgo"],
+    "Venus": ["Tauro", "Libra"],
+    "Marte": ["Aries", "Escorpio"],
+    "Jupiter": ["Sagitario", "Piscis"],
+    "Saturno": ["Capricornio", "Acuario"],
+    "Urano": ["Acuario"],
+    "Neptuno": ["Piscis"],
+    "Pluton": ["Escorpio"],
+}
+
+EXALTACIONES = {
+    "Sol": "Aries",
+    "Luna": "Tauro",
+    "Mercurio": "Virgo",
+    "Venus": "Piscis",
+    "Marte": "Capricornio",
+    "Jupiter": "Cancer",
+    "Saturno": "Libra",
+    "Urano": "Escorpio",
+    "Neptuno": "Leo",
+    "Pluton": "Acuario",
+}
+
+# Caída = signo opuesto a la exaltación
+CAIDAS = {
+    "Sol": "Libra",
+    "Luna": "Escorpio",
+    "Mercurio": "Piscis",
+    "Venus": "Virgo",
+    "Marte": "Cancer",
+    "Jupiter": "Capricornio",
+    "Saturno": "Aries",
+    "Urano": "Tauro",
+    "Neptuno": "Acuario",
+    "Pluton": "Leo",
+}
+
+# Exilio = signo(s) opuesto(s) al domicilio
+EXILIOS = {
+    "Sol": ["Acuario"],
+    "Luna": ["Capricornio"],
+    "Mercurio": ["Sagitario", "Piscis"],
+    "Venus": ["Aries", "Escorpio"],
+    "Marte": ["Libra", "Tauro"],
+    "Jupiter": ["Geminis", "Virgo"],
+    "Saturno": ["Cancer", "Leo"],
+    "Urano": ["Leo"],
+    "Neptuno": ["Virgo"],
+    "Pluton": ["Tauro"],
+}
+
+
+# --- Elementos y modalidades por signo ---
+
+ELEMENTOS_POR_SIGNO = {
+    "Aries": "Fuego", "Leo": "Fuego", "Sagitario": "Fuego",
+    "Tauro": "Tierra", "Virgo": "Tierra", "Capricornio": "Tierra",
+    "Geminis": "Aire", "Libra": "Aire", "Acuario": "Aire",
+    "Cancer": "Agua", "Escorpio": "Agua", "Piscis": "Agua",
+}
+
+MODALIDADES_POR_SIGNO = {
+    "Aries": "Cardinal", "Cancer": "Cardinal", "Libra": "Cardinal", "Capricornio": "Cardinal",
+    "Tauro": "Fijo", "Leo": "Fijo", "Escorpio": "Fijo", "Acuario": "Fijo",
+    "Geminis": "Mutable", "Virgo": "Mutable", "Sagitario": "Mutable", "Piscis": "Mutable",
+}
+
 

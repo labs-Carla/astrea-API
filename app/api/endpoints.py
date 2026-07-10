@@ -16,6 +16,8 @@ from fastapi import Depends
 from app.core.database import get_db
 from app.services.persistence_service import buscar_carta_existente, guardar_carta, deserializar_carta
 
+from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
+
 
 
 router = APIRouter()
@@ -174,3 +176,16 @@ def test_aspectos(datos: DatosNacimiento):
     aspectos = calcular_todos_los_aspectos(puntos)
 
     return {"total_aspectos": len(aspectos), "aspectos": aspectos}
+
+
+@router.post("/test-dignidades-elementos")
+def test_dignidades_elementos(datos: DatosNacimiento):
+    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+    dia_juliano = calcular_dia_juliano(fecha_utc)
+    resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
+    posiciones = calcular_posiciones_planetarias(dia_juliano, datos.latitud, resultado_casas["_armc"])
+
+    dignidades = calcular_dignidades_de_carta(posiciones)
+    elementos = calcular_elementos_y_modalidades(posiciones)
+
+    return {"dignidades": dignidades, "elementos_y_modalidades": elementos}

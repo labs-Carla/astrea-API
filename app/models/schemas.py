@@ -19,6 +19,10 @@ class RespuestaCartaNatal(BaseModel):
 
 class InterpretacionCompleta(BaseModel):
     overview: str = Field(..., min_length=100, description="Resumen general que amarra toda la carta")
+    lectura_elementos_dignidades: str = Field(
+        ..., min_length=80,
+        description="Interpretación del patrón compuesto por el elemento/modalidad dominante junto con las dignidades esenciales presentes en la carta"
+    )
     sol: str = Field(..., min_length=50)
     luna: str = Field(..., min_length=50)
     mercurio: str = Field(..., min_length=50)

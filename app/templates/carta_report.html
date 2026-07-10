@@ -143,6 +143,69 @@
     page-break-inside: avoid;
   }
 
+  /* ===== Página "Cómo leer este reporte" ===== */
+
+  .como-leer-texto {
+    font-size: 14.5px;
+    color: var(--tinta);
+    margin-bottom: 10px;
+  }
+
+  .como-leer-bullets {
+    list-style: none;
+    margin: 24px 0;
+    padding: 0;
+  }
+
+  .como-leer-bullets li {
+    font-size: 14px;
+    color: var(--tinta);
+    margin-bottom: 12px;
+    padding-left: 24px;
+    position: relative;
+  }
+
+  .como-leer-bullets li::before {
+    content: "✦";
+    position: absolute;
+    left: 0;
+    color: var(--ocre);
+  }
+
+  .como-leer-cita {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    background-color: var(--papel-destacado);
+    padding: 24px 28px;
+    border-left: 3px solid var(--azul);
+    margin-top: 30px;
+    color: var(--tinta);
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ===== Página final de frase de cierre ===== */
+
+  .pagina-cierre {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px;
+  }
+
+  .frase-cierre {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 30px;
+    line-height: 1.5;
+    color: var(--tinta);
+    max-width: 480px;
+  }
+
   .panorama-grid {
     display: flex;
     gap: 20px;
@@ -350,6 +413,35 @@
     </div>
   </div>
 
+  <!-- ================= CÓMO LEER ESTE REPORTE (estático, no generado por IA) ================= -->
+  <div class="capitulo">
+    <h2 class="capitulo-titulo">Cómo leer este reporte</h2>
+
+    <p class="como-leer-texto">Este no es un documento para terminar en una sola tarde.</p>
+    <p class="como-leer-texto">Una carta natal revela diferentes significados según el momento de la vida en el que
+      te encuentres. Es posible que algunas páginas resuenen profundamente hoy y que otras cobren sentido meses o
+      incluso años después.</p>
+    <p class="como-leer-texto">Te invito a leer este reporte con curiosidad, no buscando respuestas absolutas, sino
+      nuevas formas de comprenderte. Mientras lo recorres, recuerda:</p>
+
+    <ul class="como-leer-bullets">
+      <li>No es necesario leerlo todo en una sola sesión.</li>
+      <li>Vuelve a él cuando estés viviendo cambios, decisiones importantes o momentos de crecimiento.</li>
+      <li>Subraya las frases que más resuenen contigo y anota tus propias reflexiones.</li>
+      <li>Si alguna interpretación no encaja hoy, déjala reposar. Con el tiempo podrías descubrir un significado
+        diferente.</li>
+    </ul>
+
+    <p class="como-leer-texto">Este reporte no pretende decirte quién eres, sino ofrecerte un mapa simbólico para
+      explorar tu propio camino. Que estas páginas te acompañen con la misma paciencia con la que el cielo ha
+      acompañado tu historia desde el día en que naciste.</p>
+
+    <div class="como-leer-cita">
+      "La carta natal no cambia. Quien cambia eres tú. Por eso, cada nueva lectura puede revelar una perspectiva
+      diferente."
+    </div>
+  </div>
+
   <!-- ================= CAPÍTULO I: VISIÓN GENERAL ================= -->
   {% if interpretacion.overview %}
   <div class="capitulo">
@@ -532,6 +624,15 @@
       Esta interpretación fue generada con asistencia de inteligencia artificial como guía simbólica<br>
       de autoconocimiento. No constituye consejo profesional, médico, legal ni financiero.<br>
       Para decisiones importantes de vida, consulta siempre con un profesional cualificado.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= PÁGINA FINAL: FRASE DE CIERRE ================= -->
+  {% if interpretacion.frase_de_cierre %}
+  <div class="capitulo">
+    <div class="pagina-cierre">
+      <p class="frase-cierre">{{ interpretacion.frase_de_cierre }}</p>
     </div>
   </div>
   {% endif %}

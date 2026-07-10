@@ -29,6 +29,8 @@ def _construir_prompt_usuario(calculo: dict) -> str:
     planetas = calculo["planetas"]
     puntos_angulares = calculo["puntos_angulares"]
     aspectos = calculo.get("aspectos", [])
+    dignidades = calculo.get("dignidades", {})
+    elementos = calculo.get("elementos_y_modalidades", {})
 
     lineas = ["Interpreta esta carta natal completa:\n"]
     lineas.append("--- Puntos Angulares ---")
@@ -40,6 +42,18 @@ def _construir_prompt_usuario(calculo: dict) -> str:
         retro = " (retrógrado)" if datos["retrogrado"] else ""
         lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°, Casa {datos['casa']}{retro}")
 
+    if dignidades:
+        lineas.append("\n--- Dignidades Esenciales ---")
+        for nombre, info in dignidades.items():
+            lineas.append(f"{nombre} en {info['signo']}: {info['dignidad']}")
+
+    if elementos:
+        lineas.append("\n--- Balance de Elementos y Modalidades ---")
+        lineas.append(f"Elementos: {elementos['conteo_elementos']}")
+        lineas.append(f"Elemento dominante: {elementos['elemento_dominante']}")
+        lineas.append(f"Modalidades: {elementos['conteo_modalidades']}")
+        lineas.append(f"Modalidad dominante: {elementos['modalidad_dominante']}")
+
     if aspectos:
         lineas.append("\n--- Aspectos ---")
         for asp in aspectos:
@@ -49,14 +63,24 @@ def _construir_prompt_usuario(calculo: dict) -> str:
 Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, sin tildes en las claves):
 {
   "overview": "resumen general que amarra toda la carta (150-250 palabras)",
+  "lectura_elementos_dignidades": "interpretación dedicada al patrón de Elementos/Modalidades y Dignidades Esenciales (100-180 palabras). Esta NO es una repetición del overview, es su propia lectura enfocada:
+    (1) Explica qué arquetipo resulta de la COMBINACIÓN del elemento dominante y la modalidad dominante juntos
+        (ej. Aire+Mutable no es 'mente ágil' + 'adaptable' por separado, sino un único rasgo compuesto:
+        curiosidad conectiva que salta de idea en idea sin anclar). No listes los conteos numéricos, intégralos en la narrativa.
+    (2) Si hay planetas con dignidad esencial (Domicilio o Exaltación), interpreta qué dice de la carta tener
+        esa fuerza concentrada ahí — son las herramientas más confiables de la persona.
+    (3) Si hay planetas en Caída o Exilio, interpreta qué tensión o área de esfuerzo consciente representan —
+        sin tono negativo, como potencial que requiere trabajo. Omite cualquier planeta sin dignidad marcada.
+    (4) Cierra conectando el patrón elemento/modalidad con el patrón de dignidades: ¿el estilo dominante
+        ayuda o compite con las áreas de fuerza/tensión que marcan las dignidades?",
   "sol": "...", "luna": "...", "mercurio": "...", "venus": "...", "marte": "...",
   "jupiter": "...", "saturno": "...", "urano": "...", "neptuno": "...", "pluton": "...",
   "nodo_norte": "...", "quiron": "...", "ascendente": "...", "medio_cielo": "...",
   "conclusion": "cierre que integra los temas principales (100-150 palabras)"
 }
-Cada bloque de planeta/punto individual: 100-180 palabras. Usa los aspectos listados arriba para
-enriquecer las interpretaciones de los planetas involucrados (ej. si el Sol tiene una cuadratura
-con Saturno, menciónalo al interpretar el Sol).""")
+Cada bloque de planeta/punto individual: 100-180 palabras. Si un planeta tiene dignidad esencial
+(Domicilio, Exaltación, Caída o Exilio), menciónalo explícitamente en su interpretación individual,
+explicando qué significa esa fortaleza o debilidad para ese planeta específico.""")
 
     return "\n".join(lineas)
 

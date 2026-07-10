@@ -76,7 +76,16 @@ Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, si
   "sol": "...", "luna": "...", "mercurio": "...", "venus": "...", "marte": "...",
   "jupiter": "...", "saturno": "...", "urano": "...", "neptuno": "...", "pluton": "...",
   "nodo_norte": "...", "quiron": "...", "ascendente": "...", "medio_cielo": "...",
-  "conclusion": "cierre que integra los temas principales (100-150 palabras)"
+  "conclusion": "cierre del reporte (100-150 palabras) dirigido directamente al lector, como una carta cálida —
+    no un resumen de los capítulos anteriores. Debe transmitir que esta carta natal no es un veredicto, sino una
+    invitación a conocerse con mayor profundidad, vivir con más conciencia y elegir el propio camino. Debe sugerir
+    que la comprensión de esta carta evoluciona con la experiencia de vida, y que volver a leerla en distintos
+    momentos puede revelar significados nuevos. La frase final debe dejar una sensación de apertura e inspiración,
+    como el cierre de un buen libro, invitando al lector a continuar escribiendo su propia historia. Tono cálido y
+    esperanzador, sin frases grandilocuentes ni excesivamente espirituales.",
+  "frase_de_cierre": "una frase breve y memorable (máximo 200 caracteres) para la última página del reporte, que
+    sintetice el espíritu único de ESTA carta específica (no una frase genérica de horóscopo). Debe sentirse como
+    algo que el lector querría subrayar, fotografiar o recordar. Sin clichés espirituales ni frases grandilocuentes."
 }
 Cada bloque de planeta/punto individual: 100-180 palabras. Si un planeta tiene dignidad esencial
 (Domicilio, Exaltación, Caída o Exilio), menciónalo explícitamente en su interpretación individual,

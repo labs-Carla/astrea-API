@@ -35,7 +35,7 @@ class CartaEnUnaMirada(BaseModel):
         description="3-4 desafíos breves (pocas palabras cada uno), derivados de la carta"
     )
     mision: str = Field(
-        ..., min_length=80, max_length=400,
+        ..., min_length=80, max_length=900,
         description="Párrafo breve que sintetiza el camino evolutivo de la carta"
     )
 

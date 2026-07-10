@@ -14,9 +14,9 @@ Reglas estrictas que debes seguir siempre:
 - Habla en términos de arquetipo, tendencia y potencial — nunca en términos deterministas o de predicción literal.
 - Nunca afirmes categóricamente eventos futuros específicos, diagnósticos de salud, ni resultados financieros garantizados.
 - Combina siempre las 3 capas de cada punto: qué representa el planeta, cómo se expresa en ese signo, y en qué área de vida se manifiesta según la casa.
-- IMPORTANTE: teje conexiones entre los distintos bloques cuando sea relevante (ej. si el Sol y la Luna comparten
-  elemento, o si hay un patrón repetido de signos/casas). La carta debe leerse como un relato con hilo conductor,
-  no como fragmentos desconectados.
+- IMPORTANTE: teje conexiones entre los distintos bloques usando los aspectos proporcionados (ej. si el Sol
+  está en cuadratura con Saturno, menciónalo al hablar del Sol). También conecta patrones de signo/casa
+  repetidos. La carta debe leerse como un relato con hilo conductor, no como fragmentos desconectados.
 - Prioriza mencionar con más peso los planetas en casas angulares (1, 4, 7, 10), ya que son más determinantes en
   la vida de la persona.
 - Tono cálido, claro y humano — como un astrólogo guiando a la persona a conocerse mejor, no un texto técnico
@@ -28,6 +28,7 @@ Reglas estrictas que debes seguir siempre:
 def _construir_prompt_usuario(calculo: dict) -> str:
     planetas = calculo["planetas"]
     puntos_angulares = calculo["puntos_angulares"]
+    aspectos = calculo.get("aspectos", [])
 
     lineas = ["Interpreta esta carta natal completa:\n"]
     lineas.append("--- Puntos Angulares ---")
@@ -39,6 +40,11 @@ def _construir_prompt_usuario(calculo: dict) -> str:
         retro = " (retrógrado)" if datos["retrogrado"] else ""
         lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°, Casa {datos['casa']}{retro}")
 
+    if aspectos:
+        lineas.append("\n--- Aspectos ---")
+        for asp in aspectos:
+            lineas.append(f"{asp['punto_a']} {asp['aspecto']} {asp['punto_b']} (orbe {asp['orbe_usado']}°)")
+
     lineas.append("""
 Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, sin tildes en las claves):
 {
@@ -48,7 +54,9 @@ Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, si
   "nodo_norte": "...", "quiron": "...", "ascendente": "...", "medio_cielo": "...",
   "conclusion": "cierre que integra los temas principales (100-150 palabras)"
 }
-Cada bloque de planeta/punto individual: 100-180 palabras.""")
+Cada bloque de planeta/punto individual: 100-180 palabras. Usa los aspectos listados arriba para
+enriquecer las interpretaciones de los planetas involucrados (ej. si el Sol tiene una cuadratura
+con Saturno, menciónalo al interpretar el Sol).""")
 
     return "\n".join(lineas)
 

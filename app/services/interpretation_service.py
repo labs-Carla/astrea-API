@@ -62,6 +62,19 @@ def _construir_prompt_usuario(calculo: dict) -> str:
     lineas.append("""
 Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, sin tildes en las claves):
 {
+  "carta_en_una_mirada": {
+    "esencia": "3 a 4 conceptos breves separados por ' · ' que capturen el eje central de la carta en una
+      frase-titular (ej. 'Analítica · Transformadora · Sensible'). Deben ser PALABRAS DISTINTAS a las que
+      usarás luego en el overview — es un titular, no un adelanto textual.",
+    "talentos": ["3 a 4 fortalezas MUY breves (2-5 palabras cada una), como titulares de periódico, no oraciones
+      completas. Ej: 'Comprender a las personas', 'Resolver problemas complejos'. NO expliques el porqué aquí
+      — eso se desarrolla después en los capítulos."],
+    "desafios": ["3 a 4 desafíos MUY breves, mismo formato que talentos. Ej: 'Tendencia al perfeccionismo',
+      'Exceso de análisis'. Sin explicar el porqué."],
+    "mision": "un párrafo breve (80-150 palabras) que sintetice el camino evolutivo de la carta con SU PROPIO
+      ángulo narrativo, distinto al de la conclusión final. Trata este párrafo como la contraportada de un
+      libro: genera intriga y dirección, no desarrollo completo."
+  },
   "overview": "resumen general que amarra toda la carta (150-250 palabras)",
   "lectura_elementos_dignidades": "interpretación dedicada al patrón de Elementos/Modalidades y Dignidades Esenciales (100-180 palabras). Esta NO es una repetición del overview, es su propia lectura enfocada:
     (1) Explica qué arquetipo resulta de la COMBINACIÓN del elemento dominante y la modalidad dominante juntos
@@ -87,6 +100,11 @@ Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, si
     sintetice el espíritu único de ESTA carta específica (no una frase genérica de horóscopo). Debe sentirse como
     algo que el lector querría subrayar, fotografiar o recordar. Sin clichés espirituales ni frases grandilocuentes."
 }
+
+IMPORTANTE sobre "carta_en_una_mirada": esta sección es un resumen ejecutivo de dos minutos, no un adelanto
+textual de lo que sigue. Usa lenguaje, ángulos y énfasis DISTINTOS a los que usarás en el overview y en los
+capítulos de planetas — evita reutilizar las mismas frases o metáforas que emplearás después en el reporte.
+
 Cada bloque de planeta/punto individual: 100-180 palabras. Si un planeta tiene dignidad esencial
 (Domicilio, Exaltación, Caída o Exilio), menciónalo explícitamente en su interpretación individual,
 explicando qué significa esa fortaleza o debilidad para ese planeta específico.""")

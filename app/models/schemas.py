@@ -38,3 +38,7 @@ class InterpretacionCompleta(BaseModel):
     ascendente: str = Field(..., min_length=50)
     medio_cielo: str = Field(..., min_length=50)
     conclusion: str = Field(..., min_length=80, description="Cierre que integra los temas principales de la carta")
+    frase_de_cierre: str = Field(
+        ..., min_length=20, max_length=200,
+        description="Frase breve y memorable para la última página del reporte, que sintetiza el espíritu de la carta sin caer en clichés"
+    )

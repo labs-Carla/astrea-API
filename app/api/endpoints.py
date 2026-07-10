@@ -11,6 +11,11 @@ from app.services.interpretation_service import interpretar_carta_completa
 
 from app.services.aspectos_service import calcular_todos_los_aspectos
 
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.core.database import get_db
+from app.services.persistence_service import buscar_carta_existente, guardar_carta, deserializar_carta
+
 
 
 router = APIRouter()
@@ -74,43 +79,60 @@ def generar_carta_natal_html(datos: DatosNacimiento):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/pdf")
-async def generar_carta_natal_pdf(datos: DatosNacimiento):
+async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
-        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
-        dia_juliano = calcular_dia_juliano(fecha_utc)
-
-        resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
-        posiciones = calcular_posiciones_planetarias(
-            dia_juliano, datos.latitud, resultado_casas["_armc"]
+        # Primero: ¿esta carta ya fue generada antes con estos datos exactos?
+        carta_existente = buscar_carta_existente(
+            db, datos.fecha_hora_local, datos.latitud, datos.longitud
         )
 
-        # Armamos los puntos para aspectos (planetas + Ascendente + Medio Cielo)
-        puntos_para_aspectos = {
-            nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
-        }
-        puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
-        puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
+        if carta_existente is not None:
+            calculo, interpretacion = deserializar_carta(carta_existente)
+            metadata = {
+                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
+                "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
+                "latitud": datos.latitud,
+                "longitud": datos.longitud,
+            }
+        else:
+            fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+            dia_juliano = calcular_dia_juliano(fecha_utc)
 
-        aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
+            resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
+            posiciones = calcular_posiciones_planetarias(
+                dia_juliano, datos.latitud, resultado_casas["_armc"]
+            )
 
-        metadata = {
-            "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-            "fecha_hora_utc": fecha_utc.isoformat(),
-            "latitud": datos.latitud,
-            "longitud": datos.longitud,
-        }
-        calculo = {
-            "planetas": posiciones,
-            "casas": resultado_casas["casas"],
-            "puntos_angulares": resultado_casas["puntos_angulares"],
-            "aspectos": aspectos,
-        }
+            puntos_para_aspectos = {
+                nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
+            }
+            puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
+            puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
 
-        interpretacion = await interpretar_carta_completa(calculo)
+            aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
+
+            metadata = {
+                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
+                "fecha_hora_utc": fecha_utc.isoformat(),
+                "latitud": datos.latitud,
+                "longitud": datos.longitud,
+            }
+            calculo = {
+                "planetas": posiciones,
+                "casas": resultado_casas["casas"],
+                "puntos_angulares": resultado_casas["puntos_angulares"],
+                "aspectos": aspectos,
+                "fecha_hora_utc": fecha_utc.isoformat(),
+            }
+
+            interpretacion = await interpretar_carta_completa(calculo)
+
+            guardar_carta(
+                db, datos.fecha_hora_local, datos.latitud, datos.longitud, calculo, interpretacion
+            )
 
         html = generar_html_reporte(metadata, calculo, interpretacion)
         pdf_bytes = await generar_pdf_desde_html(html)
-
 
         return Response(
             content=pdf_bytes,
@@ -121,7 +143,8 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-"""@router.post("/test-interpretacion-completa")
+
+@router.post("/test-interpretacion-completa")
 async def test_interpretacion_completa(datos: DatosNacimiento):
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
     dia_juliano = calcular_dia_juliano(fecha_utc)
@@ -152,4 +175,4 @@ def test_aspectos(datos: DatosNacimiento):
 
     aspectos = calcular_todos_los_aspectos(puntos)
 
-    return {"total_aspectos": len(aspectos), "aspectos": aspectos}"""
+    return {"total_aspectos": len(aspectos), "aspectos": aspectos}

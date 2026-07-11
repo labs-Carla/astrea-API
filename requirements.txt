@@ -8,3 +8,4 @@ jinja2
 playwright
 anthropic
 sqlalchemy
+weasyprint==69.0

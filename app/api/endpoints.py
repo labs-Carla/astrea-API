@@ -132,7 +132,7 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
             )
 
         html = generar_html_reporte(metadata, calculo, interpretacion)
-        pdf_bytes = await generar_pdf_desde_html(html)
+        pdf_bytes =  generar_pdf_desde_html(html)
 
         return Response(
             content=pdf_bytes,

@@ -23,8 +23,8 @@ class CartaEnUnaMirada(BaseModel):
     repetir el desarrollo que aparece más adelante en overview/capítulos.
     """
     esencia: str = Field(
-        ..., min_length=10, max_length=80,
-        description="3-4 conceptos breves que definan el eje principal de la carta, ej. 'Analítica · Transformadora · Sensible'"
+        ..., min_length=10, max_length=140,
+        description="3-4 conceptos breves (una o dos palabras cada uno) que definan el eje principal de la carta, ej. 'Analítica · Transformadora · Sensible'"
     )
     talentos: list[str] = Field(
         ..., min_length=3, max_length=4,

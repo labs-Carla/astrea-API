@@ -67,9 +67,10 @@ def _construir_prompt_usuario(calculo: dict) -> str:
 Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, sin tildes en las claves):
 {
   "carta_en_una_mirada": {
-    "esencia": "3 a 4 conceptos breves separados por ' · ' que capturen el eje central de la carta en una
-      frase-titular (ej. 'Analítica · Transformadora · Sensible'). Deben ser PALABRAS DISTINTAS a las que
-      usarás luego en el overview — es un titular, no un adelanto textual.",
+    "esencia": "3 a 4 conceptos de UNA SOLA PALABRA cada uno (adjetivos o sustantivos breves), separados por
+      ' · ', que capturen el eje central de la carta en una frase-titular (ej. 'Analítica · Transformadora ·
+      Sensible'). Nunca frases de 2+ palabras por concepto. Deben ser palabras distintas a las que usarás
+      luego en el overview — es un titular, no un adelanto textual.",
     "talentos": ["3 a 4 fortalezas MUY breves (2-5 palabras cada una), como titulares de periódico, no oraciones
       completas. Ej: 'Comprender a las personas', 'Resolver problemas complejos'. NO expliques el porqué aquí
       — eso se desarrolla después en los capítulos."],

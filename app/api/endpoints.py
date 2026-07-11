@@ -110,6 +110,8 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
             puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
 
             aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
+            dignidades = calcular_dignidades_de_carta(posiciones)
+            elementos_y_modalidades = calcular_elementos_y_modalidades(posiciones)
 
             metadata = {
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
@@ -122,6 +124,8 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
                 "casas": resultado_casas["casas"],
                 "puntos_angulares": resultado_casas["puntos_angulares"],
                 "aspectos": aspectos,
+                "dignidades": dignidades,
+                "elementos_y_modalidades": elementos_y_modalidades,
                 "fecha_hora_utc": fecha_utc.isoformat(),
             }
 

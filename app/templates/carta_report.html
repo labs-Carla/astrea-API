@@ -14,6 +14,8 @@
     --azul: #3D5A6C;
     --ocre: #8B6F47;
     --linea: #C4B8A0;
+    --portada-crema: #F3ECD9;
+    --portada-dorado: #C9A15F;
   }
 
   * { box-sizing: border-box; }
@@ -70,6 +72,118 @@
     justify-content: center;
     text-align: center;
     padding: 50px 55px;
+    background-image: url('assets/fondo_portada_nocturno.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .portada-wordmark {
+    width: 320px;
+    height: auto;
+    margin-bottom: 30px;
+  }
+
+  .portada .titulo-principal {
+    color: var(--portada-crema);
+    font-size: 56px;
+  }
+
+  .portada-divisor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: 34px 0;
+  }
+
+  .portada-divisor::before {
+    content: "";
+    height: 1.5px;
+    background: linear-gradient(to left, var(--portada-dorado), transparent);
+  }
+
+  .portada-divisor::after {
+    content: "";
+    height: 1.5px;
+    background: linear-gradient(to right, var(--portada-dorado), transparent);
+  }
+
+  .portada-divisor--grande::before,
+  .portada-divisor--grande::after {
+    width: 130px;
+  }
+
+  .portada-divisor--grande .portada-divisor-estrella {
+    width: 16px;
+    height: 16px;
+  }
+
+  .portada-divisor--mediano::before,
+  .portada-divisor--mediano::after {
+    width: 90px;
+  }
+
+  .portada-divisor--mediano .portada-divisor-estrella {
+    width: 11px;
+    height: 11px;
+  }
+
+  .portada-divisor--pequeno::before,
+  .portada-divisor--pequeno::after {
+    width: 55px;
+  }
+
+  .portada-divisor--pequeno .portada-divisor-estrella {
+    width: 6px;
+    height: 6px;
+  }
+
+  .portada-divisor-estrella {
+    flex-shrink: 0;
+  }
+
+  .portada .tagline {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--portada-dorado);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .portada-nombre {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 30px;
+    color: var(--portada-crema);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .portada .metadata {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .portada .metadata-fila {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .portada-icono {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .portada .metadata-valor {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: var(--portada-crema);
   }
 
   .eyebrow {
@@ -494,12 +608,56 @@
 <body>
 
   <div class="portada">
-    <div class="eyebrow">Carta Natal · Reporte Astrológico</div>
-    <h1 class="titulo-principal">Mapa del Cielo Natal</h1>
+    <img class="portada-wordmark" src="assets/astrea-wm-crema.png" alt="Astrea Charts">
+
+    <h1 class="titulo-principal">Carta Natal</h1>
+
+    <div class="portada-divisor portada-divisor--grande">
+      <svg class="portada-divisor-estrella" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#C9A15F"/>
+      </svg>
+    </div>
+
+    <p class="tagline">Una lectura para volver a ti una y otra vez.</p>
+
+    <div class="portada-divisor portada-divisor--mediano">
+      <svg class="portada-divisor-estrella" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#C9A15F"/>
+      </svg>
+    </div>
+
+    {% set palabras_nombre = metadata.nombre.split(" ") %}
+    {% set mitad = (palabras_nombre|length / 2)|round(0, 'ceil')|int %}
+    <p class="portada-nombre">{{ palabras_nombre[:mitad]|join(" ") }}<br>{{ palabras_nombre[mitad:]|join(" ") }}</p>
+
+    <div class="portada-divisor portada-divisor--pequeno">
+      <svg class="portada-divisor-estrella" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#C9A15F"/>
+      </svg>
+    </div>
+
     <div class="metadata">
-      <span>{{ metadata.fecha_hora_local }}</span>
-      <span>UTC {{ metadata.fecha_hora_utc }}</span>
-      <span>{{ metadata.latitud }}, {{ metadata.longitud }}</span>
+      <div class="metadata-fila">
+        <svg class="portada-icono" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="5" stroke="#C9A15F" stroke-width="1.5"/>
+          <path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="#C9A15F" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="metadata-valor">{{ metadata.fecha_hora_local.split("T")[0] }}</span>
+      </div>
+      <div class="metadata-fila">
+        <svg class="portada-icono" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9" stroke="#C9A15F" stroke-width="1.5"/>
+          <path d="M12 7v5l3.5 2" stroke="#C9A15F" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="metadata-valor">{{ metadata.fecha_hora_local.split("T")[1] }}</span>
+      </div>
+      <div class="metadata-fila">
+        <svg class="portada-icono" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z" stroke="#C9A15F" stroke-width="1.5"/>
+          <circle cx="12" cy="9" r="2.3" stroke="#C9A15F" stroke-width="1.5"/>
+        </svg>
+        <span class="metadata-valor">Ubicación pendiente</span>
+      </div>
     </div>
   </div>
 

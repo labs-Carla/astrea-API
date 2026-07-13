@@ -3,6 +3,10 @@ from datetime import datetime
 
 
 class DatosNacimiento(BaseModel):
+    nombre: str = Field(
+        ..., min_length=2, max_length=150,
+        description="Nombre completo de la persona, para mostrar en la portada del reporte"
+    )
     fecha_hora_local: datetime = Field(
         ...,
         description="Fecha y hora local de nacimiento, sin zona horaria. Ej: 2000-08-25T14:50:00"

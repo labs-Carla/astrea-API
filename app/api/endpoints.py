@@ -36,6 +36,7 @@ def generar_carta_natal(datos: DatosNacimiento):
 
         return {
             "metadata": {
+                "nombre": datos.nombre,
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
                 "fecha_hora_utc": fecha_utc.isoformat(),
                 "dia_juliano": dia_juliano,
@@ -66,6 +67,7 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
 
         calculo, interpretacion = deserializar_carta(carta_existente)
         metadata = {
+            "nombre": datos.nombre,
             "fecha_hora_local": datos.fecha_hora_local.isoformat(),
             "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
             "latitud": datos.latitud,
@@ -89,6 +91,7 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
         if carta_existente is not None:
             calculo, interpretacion = deserializar_carta(carta_existente)
             metadata = {
+                "nombre": datos.nombre,
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
                 "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
                 "latitud": datos.latitud,
@@ -114,6 +117,7 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
             elementos_y_modalidades = calcular_elementos_y_modalidades(posiciones)
 
             metadata = {
+                "nombre": datos.nombre,
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
                 "fecha_hora_utc": fecha_utc.isoformat(),
                 "latitud": datos.latitud,

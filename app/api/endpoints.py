@@ -17,7 +17,7 @@ from app.core.database import get_db
 from app.services.persistence_service import buscar_carta_existente, guardar_carta, deserializar_carta
 
 from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
-
+from app.services.geocoding_service import geocodificar_ciudad
 
 
 router = APIRouter()
@@ -26,12 +26,14 @@ router = APIRouter()
 @router.post("/carta-natal")
 def generar_carta_natal(datos: DatosNacimiento):
     try:
-        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
+        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
         dia_juliano = calcular_dia_juliano(fecha_utc)
 
-        resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
+        resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
         posiciones = calcular_posiciones_planetarias(
-            dia_juliano, datos.latitud, resultado_casas["_armc"]
+            dia_juliano, latitud, resultado_casas["_armc"]
         )
 
         return {
@@ -40,8 +42,10 @@ def generar_carta_natal(datos: DatosNacimiento):
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
                 "fecha_hora_utc": fecha_utc.isoformat(),
                 "dia_juliano": dia_juliano,
-                "latitud": datos.latitud,
-                "longitud": datos.longitud,
+                "ciudad": datos.ciudad,
+                "pais": datos.pais,
+                "latitud": latitud,
+                "longitud": longitud,
             },
             "calculo": {
                 "planetas": posiciones,
@@ -55,8 +59,10 @@ def generar_carta_natal(datos: DatosNacimiento):
 @router.post("/carta-natal/html", response_class=HTMLResponse)
 def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
         carta_existente = buscar_carta_existente(
-            db, datos.fecha_hora_local, datos.latitud, datos.longitud
+            db, datos.fecha_hora_local, latitud, longitud
         )
 
         if carta_existente is None:
@@ -70,8 +76,10 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
             "nombre": datos.nombre,
             "fecha_hora_local": datos.fecha_hora_local.isoformat(),
             "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
-            "latitud": datos.latitud,
-            "longitud": datos.longitud,
+            "ciudad": datos.ciudad,
+            "pais": datos.pais,
+            "latitud": latitud,
+            "longitud": longitud,
         }
 
         html = generar_html_reporte(metadata, calculo, interpretacion)
@@ -83,9 +91,11 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
 @router.post("/carta-natal/pdf")
 async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
         # Primero: ¿esta carta ya fue generada antes con estos datos exactos?
         carta_existente = buscar_carta_existente(
-            db, datos.fecha_hora_local, datos.latitud, datos.longitud
+            db, datos.fecha_hora_local, latitud, longitud
         )
 
         if carta_existente is not None:
@@ -94,16 +104,18 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
                 "nombre": datos.nombre,
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
                 "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
-                "latitud": datos.latitud,
-                "longitud": datos.longitud,
+                "ciudad": datos.ciudad,
+                "pais": datos.pais,
+                "latitud": latitud,
+                "longitud": longitud,
             }
         else:
-            fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+            fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
             dia_juliano = calcular_dia_juliano(fecha_utc)
 
-            resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
+            resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
             posiciones = calcular_posiciones_planetarias(
-                dia_juliano, datos.latitud, resultado_casas["_armc"]
+                dia_juliano, latitud, resultado_casas["_armc"]
             )
 
             puntos_para_aspectos = {
@@ -120,8 +132,10 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
                 "nombre": datos.nombre,
                 "fecha_hora_local": datos.fecha_hora_local.isoformat(),
                 "fecha_hora_utc": fecha_utc.isoformat(),
-                "latitud": datos.latitud,
-                "longitud": datos.longitud,
+                "ciudad": datos.ciudad,
+                "pais": datos.pais,
+                "latitud": latitud,
+                "longitud": longitud,
             }
             calculo = {
                 "planetas": posiciones,
@@ -136,7 +150,7 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
             interpretacion = await interpretar_carta_completa(calculo)
 
             guardar_carta(
-                db, datos.fecha_hora_local, datos.latitud, datos.longitud, calculo, interpretacion
+                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion
             )
 
         html = generar_html_reporte(metadata, calculo, interpretacion)
@@ -154,10 +168,11 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
 
 @router.post("/test-interpretacion-completa")
 async def test_interpretacion_completa(datos: DatosNacimiento):
-    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+    latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
     dia_juliano = calcular_dia_juliano(fecha_utc)
-    resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
-    posiciones = calcular_posiciones_planetarias(dia_juliano, datos.latitud, resultado_casas["_armc"])
+    resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
+    posiciones = calcular_posiciones_planetarias(dia_juliano, latitud, resultado_casas["_armc"])
 
     calculo = {
         "planetas": posiciones,
@@ -171,10 +186,11 @@ async def test_interpretacion_completa(datos: DatosNacimiento):
 
 @router.post("/test-aspectos")
 def test_aspectos(datos: DatosNacimiento):
-    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+    latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
     dia_juliano = calcular_dia_juliano(fecha_utc)
-    resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
-    posiciones = calcular_posiciones_planetarias(dia_juliano, datos.latitud, resultado_casas["_armc"])
+    resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
+    posiciones = calcular_posiciones_planetarias(dia_juliano, latitud, resultado_casas["_armc"])
 
     # Armamos el dict de {nombre: grado_absoluto} con planetas + Ascendente + Medio Cielo
     puntos = {nombre: datos["longitud_absoluta"] for nombre, datos in posiciones.items()}
@@ -188,10 +204,11 @@ def test_aspectos(datos: DatosNacimiento):
 
 @router.post("/test-dignidades-elementos")
 def test_dignidades_elementos(datos: DatosNacimiento):
-    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, datos.latitud, datos.longitud)
+    latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
     dia_juliano = calcular_dia_juliano(fecha_utc)
-    resultado_casas = calcular_casas(dia_juliano, datos.latitud, datos.longitud)
-    posiciones = calcular_posiciones_planetarias(dia_juliano, datos.latitud, resultado_casas["_armc"])
+    resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
+    posiciones = calcular_posiciones_planetarias(dia_juliano, latitud, resultado_casas["_armc"])
 
     dignidades = calcular_dignidades_de_carta(posiciones)
     elementos = calcular_elementos_y_modalidades(posiciones)

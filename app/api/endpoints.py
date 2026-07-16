@@ -7,7 +7,7 @@ from app.services.report_service import generar_html_reporte
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
 
-from app.services.interpretation_service import interpretar_carta_completa
+from app.services.interpretation_service import interpretar_carta_completa, interpretar_resumen_gratuito
 
 from app.services.aspectos_service import calcular_todos_los_aspectos
 
@@ -165,6 +165,52 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/carta-natal/resumen")
+async def generar_resumen_gratuito(datos: DatosNacimiento):
+    try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
+        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
+        dia_juliano = calcular_dia_juliano(fecha_utc)
+
+        resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
+        posiciones = calcular_posiciones_planetarias(
+            dia_juliano, latitud, resultado_casas["_armc"]
+        )
+
+        puntos_para_aspectos = {
+            nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
+        }
+        puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
+        puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
+
+        aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
+
+        calculo = {
+            "planetas": posiciones,
+            "casas": resultado_casas["casas"],
+            "puntos_angulares": resultado_casas["puntos_angulares"],
+            "aspectos": aspectos,
+        }
+
+        resumen = await interpretar_resumen_gratuito(calculo)
+
+        return {
+            "metadata": {
+                "nombre": datos.nombre,
+                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
+                "fecha_hora_utc": fecha_utc.isoformat(),
+                "ciudad": datos.ciudad,
+                "pais": datos.pais,
+                "latitud": latitud,
+                "longitud": longitud,
+            },
+            "calculo": calculo,
+            "resumen": resumen.get("resumen", ""),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/test-interpretacion-completa")
 async def test_interpretacion_completa(datos: DatosNacimiento):
@@ -214,3 +260,5 @@ def test_dignidades_elementos(datos: DatosNacimiento):
     elementos = calcular_elementos_y_modalidades(posiciones)
 
     return {"dignidades": dignidades, "elementos_y_modalidades": elementos}
+
+    

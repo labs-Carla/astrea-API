@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import DatosNacimiento
 from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
@@ -7,14 +8,23 @@ from app.services.report_service import generar_html_reporte
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
 
-from app.services.interpretation_service import interpretar_carta_completa, interpretar_resumen_gratuito
+from app.services.interpretation_service import (
+    interpretar_carta_completa,
+    interpretar_resumen_gratuito,
+)
 
 from app.services.aspectos_service import calcular_todos_los_aspectos
 
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from app.core.database import get_db
-from app.services.persistence_service import buscar_carta_existente, guardar_carta, deserializar_carta
+from app.services.persistence_service import (
+    buscar_carta_existente,
+    guardar_resumen,
+    guardar_carta_completa,
+    actualizar_con_interpretacion,
+    deserializar_carta,
+)
 
 from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.geocoding_service import geocodificar_ciudad
@@ -22,48 +32,97 @@ from app.services.geocoding_service import geocodificar_ciudad
 
 router = APIRouter()
 
+router = APIRouter()
 
-@router.post("/carta-natal")
-def generar_carta_natal(datos: DatosNacimiento):
+
+def _calcular_todo(datos: DatosNacimiento, latitud: float, longitud: float) -> dict:
+    """
+    Ejecuta el cálculo astronómico completo (posiciones, casas, aspectos,
+    dignidades, elementos) a partir de coordenadas ya geocodificadas.
+    Centraliza esta lógica para no repetirla entre /resumen y /pdf.
+    """
+    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
+    dia_juliano = calcular_dia_juliano(fecha_utc)
+
+    resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
+    posiciones = calcular_posiciones_planetarias(
+        dia_juliano, latitud, resultado_casas["_armc"]
+    )
+
+    puntos_para_aspectos = {
+        nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
+    }
+    puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
+    puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
+
+    aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
+    dignidades = calcular_dignidades_de_carta(posiciones)
+    elementos_y_modalidades = calcular_elementos_y_modalidades(posiciones)
+
+    return {
+        "fecha_utc": fecha_utc,
+        "calculo": {
+            "planetas": posiciones,
+            "casas": resultado_casas["casas"],
+            "puntos_angulares": resultado_casas["puntos_angulares"],
+            "aspectos": aspectos,
+            "dignidades": dignidades,
+            "elementos_y_modalidades": elementos_y_modalidades,
+            "fecha_hora_utc": fecha_utc.isoformat(),
+        },
+    }
+
+
+def _metadata_base(datos: DatosNacimiento, latitud: float, longitud: float, fecha_hora_utc: str) -> dict:
+    return {
+        "nombre": datos.nombre,
+        "fecha_hora_local": datos.fecha_hora_local.isoformat(),
+        "fecha_hora_utc": fecha_hora_utc,
+        "ciudad": datos.ciudad,
+        "pais": datos.pais,
+        "latitud": latitud,
+        "longitud": longitud,
+    }
+
+
+@router.post("/carta-natal/resumen")
+async def generar_resumen_gratuito(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
-        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
-        dia_juliano = calcular_dia_juliano(fecha_utc)
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
 
-        resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
-        posiciones = calcular_posiciones_planetarias(
-            dia_juliano, latitud, resultado_casas["_armc"]
-        )
+        if carta_existente is not None:
+            calculo, resumen, _ = deserializar_carta(carta_existente)
+            if resumen is None:
+                # Existe la fila (probablemente ya compró premium) pero nunca pasó
+                # por el flujo gratis: generamos el resumen reutilizando el calculo ya guardado.
+                resumen = await interpretar_resumen_gratuito(calculo)
+                carta_existente.resumen_json = json.dumps(resumen)
+                db.commit()
+        else:
+            resultado = _calcular_todo(datos, latitud, longitud)
+            calculo = resultado["calculo"]
+            resumen = await interpretar_resumen_gratuito(calculo)
+            guardar_resumen(db, datos.fecha_hora_local, latitud, longitud, calculo, resumen)
+
+        metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
 
         return {
-            "metadata": {
-                "nombre": datos.nombre,
-                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-                "fecha_hora_utc": fecha_utc.isoformat(),
-                "dia_juliano": dia_juliano,
-                "ciudad": datos.ciudad,
-                "pais": datos.pais,
-                "latitud": latitud,
-                "longitud": longitud,
-            },
-            "calculo": {
-                "planetas": posiciones,
-                "casas": resultado_casas["casas"],
-                "puntos_angulares": resultado_casas["puntos_angulares"],
-            },
+            "metadata": metadata,
+            "calculo": calculo,
+            "resumen": resumen.get("resumen", ""),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/carta-natal/html", response_class=HTMLResponse)
 def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
-        carta_existente = buscar_carta_existente(
-            db, datos.fecha_hora_local, latitud, longitud
-        )
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
 
         if carta_existente is None:
             raise HTTPException(
@@ -71,90 +130,46 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
                 detail="Esta carta no ha sido generada todavía. Usa /carta-natal/pdf primero.",
             )
 
-        calculo, interpretacion = deserializar_carta(carta_existente)
-        metadata = {
-            "nombre": datos.nombre,
-            "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-            "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
-            "ciudad": datos.ciudad,
-            "pais": datos.pais,
-            "latitud": latitud,
-            "longitud": longitud,
-        }
+        calculo, _, interpretacion = deserializar_carta(carta_existente)
 
+        if interpretacion is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Esta carta solo tiene el resumen gratuito generado. Usa /carta-natal/pdf para el reporte completo.",
+            )
+
+        metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
         html = generar_html_reporte(metadata, calculo, interpretacion)
         return HTMLResponse(content=html)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-        
+
+
 @router.post("/carta-natal/pdf")
 async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
-        # Primero: ¿esta carta ya fue generada antes con estos datos exactos?
-        carta_existente = buscar_carta_existente(
-            db, datos.fecha_hora_local, latitud, longitud
-        )
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
 
         if carta_existente is not None:
-            calculo, interpretacion = deserializar_carta(carta_existente)
-            metadata = {
-                "nombre": datos.nombre,
-                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-                "fecha_hora_utc": calculo.get("fecha_hora_utc", ""),
-                "ciudad": datos.ciudad,
-                "pais": datos.pais,
-                "latitud": latitud,
-                "longitud": longitud,
-            }
+            calculo, _, interpretacion = deserializar_carta(carta_existente)
+
+            if interpretacion is None:
+                # Ya generó su resumen gratis: reutilizamos el calculo, solo falta
+                # la interpretacion completa (evita recalcular Swiss Ephemeris).
+                interpretacion = await interpretar_carta_completa(calculo)
+                carta_existente = actualizar_con_interpretacion(db, carta_existente, interpretacion)
         else:
-            fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
-            dia_juliano = calcular_dia_juliano(fecha_utc)
-
-            resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
-            posiciones = calcular_posiciones_planetarias(
-                dia_juliano, latitud, resultado_casas["_armc"]
-            )
-
-            puntos_para_aspectos = {
-                nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
-            }
-            puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
-            puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
-
-            aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
-            dignidades = calcular_dignidades_de_carta(posiciones)
-            elementos_y_modalidades = calcular_elementos_y_modalidades(posiciones)
-
-            metadata = {
-                "nombre": datos.nombre,
-                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-                "fecha_hora_utc": fecha_utc.isoformat(),
-                "ciudad": datos.ciudad,
-                "pais": datos.pais,
-                "latitud": latitud,
-                "longitud": longitud,
-            }
-            calculo = {
-                "planetas": posiciones,
-                "casas": resultado_casas["casas"],
-                "puntos_angulares": resultado_casas["puntos_angulares"],
-                "aspectos": aspectos,
-                "dignidades": dignidades,
-                "elementos_y_modalidades": elementos_y_modalidades,
-                "fecha_hora_utc": fecha_utc.isoformat(),
-            }
-
+            resultado = _calcular_todo(datos, latitud, longitud)
+            calculo = resultado["calculo"]
             interpretacion = await interpretar_carta_completa(calculo)
+            guardar_carta_completa(db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion)
 
-            guardar_carta(
-                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion
-            )
-
+        metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
         html = generar_html_reporte(metadata, calculo, interpretacion)
-        pdf_bytes =  generar_pdf_desde_html(html)
+        pdf_bytes = generar_pdf_desde_html(html)
 
         return Response(
             content=pdf_bytes,
@@ -162,52 +177,6 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
             headers={"Content-Disposition": "attachment; filename=carta_natal.pdf"},
         )
 
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.post("/carta-natal/resumen")
-async def generar_resumen_gratuito(datos: DatosNacimiento):
-    try:
-        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
-
-        fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
-        dia_juliano = calcular_dia_juliano(fecha_utc)
-
-        resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
-        posiciones = calcular_posiciones_planetarias(
-            dia_juliano, latitud, resultado_casas["_armc"]
-        )
-
-        puntos_para_aspectos = {
-            nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
-        }
-        puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
-        puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
-
-        aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
-
-        calculo = {
-            "planetas": posiciones,
-            "casas": resultado_casas["casas"],
-            "puntos_angulares": resultado_casas["puntos_angulares"],
-            "aspectos": aspectos,
-        }
-
-        resumen = await interpretar_resumen_gratuito(calculo)
-
-        return {
-            "metadata": {
-                "nombre": datos.nombre,
-                "fecha_hora_local": datos.fecha_hora_local.isoformat(),
-                "fecha_hora_utc": fecha_utc.isoformat(),
-                "ciudad": datos.ciudad,
-                "pais": datos.pais,
-                "latitud": latitud,
-                "longitud": longitud,
-            },
-            "calculo": calculo,
-            "resumen": resumen.get("resumen", ""),
-        }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

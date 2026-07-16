@@ -78,3 +78,13 @@ class InterpretacionCompleta(BaseModel):
         ..., min_length=20, max_length=200,
         description="Frase breve y memorable para la última página del reporte, que sintetiza el espíritu de la carta sin caer en clichés"
     )
+
+
+class InterpretacionResumen(BaseModel):
+    resumen: str = Field(
+        ...,
+        min_length=1500,
+        max_length=4500,
+        description="Texto narrativo de 400-600 palabras que sintetiza el Big Three (Sol/Luna/Ascendente) "
+                     "y 1-2 patrones destacados de la carta, como teaser del reporte completo"
+    )

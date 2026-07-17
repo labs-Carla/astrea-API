@@ -1,13 +1,10 @@
 FROM python:3.11-slim
 
-# Librerías de sistema que WeasyPrint necesita para renderizar PDFs
-# (Pango/Cairo/GDK-Pixbuf), sin las cuales el import de pdf_service.py
-# falla y tumba toda la aplicación al arrancar.
 RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libcairo2 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
     && rm -rf /var/lib/apt/lists/*

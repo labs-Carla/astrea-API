@@ -13,7 +13,7 @@ app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TEMPORAL para desarrollo local — restringir a tu dominio de Vercel antes de producción
+    allow_origins=["https://astrea-landing-i521mtt82-cartapotencials-projects.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

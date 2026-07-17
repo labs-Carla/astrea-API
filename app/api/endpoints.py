@@ -8,10 +8,8 @@ from app.services.report_service import generar_html_reporte
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
 
-from app.services.interpretation_service import (
-    interpretar_carta_completa,
-    interpretar_resumen_gratuito,
-)
+from app.services.interpretation_service import interpretar_carta_completa
+from app.services.resumen_deterministico_service import generar_resumen_deterministico
 
 from app.services.aspectos_service import calcular_todos_los_aspectos
 
@@ -29,8 +27,6 @@ from app.services.persistence_service import (
 from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.geocoding_service import geocodificar_ciudad
 
-
-router = APIRouter()
 
 router = APIRouter()
 
@@ -84,7 +80,6 @@ def _metadata_base(datos: DatosNacimiento, latitud: float, longitud: float, fech
         "longitud": longitud,
     }
 
-
 @router.post("/carta-natal/resumen")
 async def generar_resumen_gratuito(datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
@@ -97,13 +92,13 @@ async def generar_resumen_gratuito(datos: DatosNacimiento, db: Session = Depends
             if resumen is None:
                 # Existe la fila (probablemente ya compró premium) pero nunca pasó
                 # por el flujo gratis: generamos el resumen reutilizando el calculo ya guardado.
-                resumen = await interpretar_resumen_gratuito(calculo)
+                resumen = generar_resumen_deterministico(calculo)
                 carta_existente.resumen_json = json.dumps(resumen)
                 db.commit()
         else:
             resultado = _calcular_todo(datos, latitud, longitud)
             calculo = resultado["calculo"]
-            resumen = await interpretar_resumen_gratuito(calculo)
+            resumen = generar_resumen_deterministico(calculo)
             guardar_resumen(db, datos.fecha_hora_local, latitud, longitud, calculo, resumen)
 
         metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
@@ -111,7 +106,7 @@ async def generar_resumen_gratuito(datos: DatosNacimiento, db: Session = Depends
         return {
             "metadata": metadata,
             "calculo": calculo,
-            "resumen": resumen.get("resumen", ""),
+            "resumen": resumen,
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -8,4 +8,6 @@ jinja2
 anthropic
 sqlalchemy
 weasyprint==69.0
-geopyalembic==1.18.5
+geopy
+alembic==1.18.5
+python-dotenv

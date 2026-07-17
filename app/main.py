@@ -13,7 +13,7 @@ app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://astrea-landing-i521mtt82-cartapotencials-projects.vercel.app"],
+    allow_origins=["https://astrea-landing-f9rwbjtwo-cartapotencials-projects.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

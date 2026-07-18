@@ -2,7 +2,10 @@ from jinja2 import Environment, FileSystemLoader
 import os
 
 _RUTA_TEMPLATES = os.path.join(os.path.dirname(__file__), "..", "templates")
-_env = Environment(loader=FileSystemLoader(_RUTA_TEMPLATES))
+_env = Environment(
+    loader=FileSystemLoader(_RUTA_TEMPLATES),
+    autoescape=True,
+)
 
 # Mapea el nombre del planeta (como aparece en el cálculo) a la clave usada
 # en el JSON de interpretación (definida en interpretation_service.py)

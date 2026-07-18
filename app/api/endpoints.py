@@ -1,4 +1,6 @@
 import json
+from fastapi import Request
+from app.core.limiter import limiter
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import DatosNacimiento
 from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
@@ -81,7 +83,8 @@ def _metadata_base(datos: DatosNacimiento, latitud: float, longitud: float, fech
     }
 
 @router.post("/carta-natal/resumen")
-async def generar_resumen_gratuito(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def generar_resumen_gratuito(request:Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 

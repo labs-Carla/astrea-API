@@ -2,23 +2,25 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 
+from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
+
+
 class DatosNacimiento(BaseModel):
-    nombre: str = Field(
-        ..., min_length=2, max_length=150,
-        description="Nombre completo de la persona, para mostrar en la portada del reporte"
-    )
-    fecha_hora_local: datetime = Field(
-        ...,
-        description="Fecha y hora local de nacimiento, sin zona horaria. Ej: 2000-08-25T14:50:00"
-    )
-    ciudad: str = Field(
-        ..., min_length=2, max_length=150,
-        description="Ciudad de nacimiento. Ej: Bogotá"
-    )
-    pais: str = Field(
-        ..., min_length=2, max_length=150,
-        description="País de nacimiento. Ej: Colombia"
-    )
+    nombre: str = Field(..., min_length=2, max_length=150, description="...")
+    fecha_hora_local: datetime = Field(..., description="...")
+    ciudad: str = Field(..., min_length=2, max_length=150, description="...")
+    pais: str = Field(..., min_length=2, max_length=150, description="...")
+
+    @field_validator("fecha_hora_local")
+    @classmethod
+    def fecha_debe_ser_razonable(cls, valor: datetime) -> datetime:
+        hoy = datetime.now()
+        if valor.year < 1900:
+            raise ValueError("La fecha de nacimiento no puede ser anterior al año 1900.")
+        if valor > hoy:
+            raise ValueError("La fecha de nacimiento no puede estar en el futuro.")
+        return valor
 
 
 class RespuestaCartaNatal(BaseModel):

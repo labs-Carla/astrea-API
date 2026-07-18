@@ -11,3 +11,4 @@ weasyprint==69.0
 geopy
 alembic==1.18.5
 python-dotenv
+slowapi

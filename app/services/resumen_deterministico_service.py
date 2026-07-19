@@ -54,24 +54,67 @@ ASCENDENTE_TEXTOS = {
     "Piscis": "Tu ascendente en Piscis te da una presencia sensible y difícil de definir del todo. Vienes a disolver límites rígidos y a conectar con lo intangible.",
 }
 
+ELEMENTO_TEXTOS = {
+    "Fuego": "Tu elemento dominante es Fuego: actúas por impulso e inspiración, y necesitas espacio para expresarte con espontaneidad.",
+    "Tierra": "Tu elemento dominante es Tierra: construyes desde lo tangible y lo constante, y necesitas resultados concretos para sentirte segura.",
+    "Aire": "Tu elemento dominante es Aire: piensas y conectas ideas con facilidad, y necesitas estímulo mental para sentirte viva.",
+    "Agua": "Tu elemento dominante es Agua: sientes con profundidad e intuyes antes de razonar, y necesitas espacio emocional genuino.",
+}
+
+MODALIDAD_TEXTOS = {
+    "Cardinal": "Tu modalidad dominante es Cardinal: inicias más de lo que sostienes, y te energiza empezar cosas nuevas.",
+    "Fijo": "Tu modalidad dominante es Fijo: sostienes lo que empiezas con determinación, y te cuesta soltar lo que ya construiste.",
+    "Mutable": "Tu modalidad dominante es Mutable: te adaptas con facilidad al cambio, y te resulta natural ajustar el rumbo sobre la marcha.",
+}
+
+ASPECTO_PLANTILLAS = {
+    "Conjuncion": "Tu {a} y tu {b} están en conjunción — actúan casi como una sola fuerza en tu carta, reforzándose mutuamente sin fricción.",
+    "Trigono": "Tu {a} y tu {b} forman un trígono — fluyen con facilidad entre sí, una combinación que te resulta natural y armoniosa.",
+    "Sextil": "Tu {a} y tu {b} forman un sextil — hay una oportunidad de colaboración entre ambos que se activa cuando decides usarla.",
+    "Cuadratura": "Tu {a} y tu {b} forman una cuadratura — una tensión productiva que te empuja a crecer, aunque a veces se sienta como fricción interna.",
+    "Oposicion": "Tu {a} y tu {b} están en oposición — viven en una polaridad que pide equilibrio consciente entre ambos extremos.",
+}
+
+NOMBRES_LEGIBLES = {"Sol": "Sol", "Luna": "Luna", "Ascendente": "Ascendente"}
+PARES_BIG_THREE = [("Sol", "Luna"), ("Sol", "Ascendente"), ("Luna", "Ascendente")]
+
+
+def _buscar_aspecto_destacado(aspectos: list[dict]) -> dict | None:
+    """
+    Busca si alguno de los 3 pares del Big Three (Sol-Luna, Sol-Ascendente,
+    Luna-Ascendente) forma un aspecto mayor. Retorna el primero que encuentre
+    (los aspectos ya vienen ordenados por orbe más cerrado desde aspectos_service),
+    o None si ninguno de los tres pares tiene aspecto dentro del orbe permitido.
+    """
+    for par_a, par_b in PARES_BIG_THREE:
+        for asp in aspectos:
+            puntos = {asp["punto_a"], asp["punto_b"]}
+            if puntos == {par_a, par_b}:
+                return {"par": (par_a, par_b), "aspecto": asp["aspecto"]}
+    return None
+
 
 def generar_resumen_deterministico(calculo: dict) -> dict:
     """
     Combina los textos fijos de Sol, Luna y Ascendente en 3 tarjetas
-    independientes (identidad / emociones / camino), sin ninguna llamada a IA.
+    independientes (identidad / emociones / camino), más el elemento y
+    modalidad dominantes, y el aspecto destacado entre el Big Three (si existe).
+    Todo determinístico, sin ninguna llamada a IA.
 
     Retorna un dict con esta forma:
     {
       "identidad": {"titulo": "Tu identidad", "texto": "...", "etiqueta": "Sol en Virgo en Casa 10"},
       "emociones": {"titulo": "Tus emociones", "texto": "...", "etiqueta": "Luna en Acuario en Casa 4"},
-      "camino":    {"titulo": "Tu camino", "texto": "...", "etiqueta": "Ascendente en Escorpio"}
+      "camino":    {"titulo": "Tu camino", "texto": "...", "etiqueta": "Ascendente en Escorpio"},
+      "elemento_modalidad": {"titulo": "Tu balance elemental", "texto": "..."},
+      "aspecto_destacado": {"titulo": "Un patrón en tu Big Three", "texto": "..."} | None
     }
     """
     sol = calculo["planetas"]["Sol"]
     luna = calculo["planetas"]["Luna"]
     asc = calculo["puntos_angulares"]["Ascendente"]
 
-    return {
+    resultado = {
         "identidad": {
             "titulo": "Tu identidad",
             "texto": SOL_TEXTOS.get(sol["signo"], ""),
@@ -88,3 +131,28 @@ def generar_resumen_deterministico(calculo: dict) -> dict:
             "etiqueta": f"Ascendente en {asc['signo']}",
         },
     }
+
+    elementos_y_modalidades = calculo.get("elementos_y_modalidades")
+    if elementos_y_modalidades:
+        elemento_dom = elementos_y_modalidades.get("elemento_dominante")
+        modalidad_dom = elementos_y_modalidades.get("modalidad_dominante")
+        texto_elemento = ELEMENTO_TEXTOS.get(elemento_dom, "")
+        texto_modalidad = MODALIDAD_TEXTOS.get(modalidad_dom, "")
+        resultado["elemento_modalidad"] = {
+            "titulo": "Tu balance elemental",
+            "texto": f"{texto_elemento} {texto_modalidad}".strip(),
+            "conteo_elementos": elementos_y_modalidades.get("conteo_elementos", {}),
+        }
+
+    aspectos = calculo.get("aspectos", [])
+    encontrado = _buscar_aspecto_destacado(aspectos)
+    if encontrado:
+        par_a, par_b = encontrado["par"]
+        plantilla = ASPECTO_PLANTILLAS.get(encontrado["aspecto"])
+        if plantilla:
+            resultado["aspecto_destacado"] = {
+                "titulo": "Un patrón en tu Big Three",
+                "texto": plantilla.format(a=NOMBRES_LEGIBLES[par_a], b=NOMBRES_LEGIBLES[par_b]),
+            }
+
+    return resultado

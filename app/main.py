@@ -23,7 +23,11 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://astrea-landing-8j2sk0sut-cartapotencials-projects.vercel.app"],
+    allow_origins=[
+        "https://astrea-landing-8j2sk0sut-cartapotencials-projects.vercel.app",  # tu preview actual
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -6,7 +6,7 @@ from app.models.schemas import DatosNacimiento
 from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
 from app.services.astro_service import calcular_casas, calcular_posiciones_planetarias
 from fastapi.responses import HTMLResponse
-from app.services.report_service import generar_html_reporte
+from app.services.report_service import generar_html_reporte, generar_html_web_reporte
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
 
@@ -138,6 +138,34 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
 
         metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
         html = generar_html_reporte(metadata, calculo, interpretacion)
+        return HTMLResponse(content=html)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/carta-natal/web", response_class=HTMLResponse)
+def generar_carta_natal_web(datos: DatosNacimiento, db: Session = Depends(get_db)):
+    try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
+
+        if carta_existente is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Esta carta no ha sido generada todavía. Usa /carta-natal/pdf primero.",
+            )
+
+        calculo, _, interpretacion = deserializar_carta(carta_existente)
+
+        if interpretacion is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Esta carta solo tiene el resumen gratuito generado. Usa /carta-natal/pdf para el reporte completo.",
+            )
+
+        metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
+        html = generar_html_web_reporte(metadata, calculo, interpretacion)
         return HTMLResponse(content=html)
 
     except ValueError as e:

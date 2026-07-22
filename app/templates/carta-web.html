@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carta Natal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/carta_web.css">
+</head>
+<body>
+
+  <div class="portada">
+    <img class="portada-wordmark" src="/static/assets/astrea-wm-crema.png" alt="Astrea Charts">
+    <h1 class="titulo-principal">Carta Natal</h1>
+
+    <div class="portada-divisor">
+      <svg class="portada-divisor-estrella" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#C9A15F"/>
+      </svg>
+    </div>
+
+    <p class="tagline">Una lectura para volver a ti una y otra vez.</p>
+    <p class="portada-nombre">{{ metadata.nombre }}</p>
+
+    <div class="metadata">
+      <div class="metadata-fila">
+        <span class="metadata-valor">{{ metadata.fecha_hora_local.split("T")[0] }} · {{ metadata.fecha_hora_local.split("T")[1] }}</span>
+      </div>
+      <div class="metadata-fila">
+        <span class="metadata-valor">{{ metadata.ciudad }}, {{ metadata.pais }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="contenedor">
+
+    {% if interpretacion.carta_en_una_mirada %}
+    <div class="capitulo">
+      <h2 class="capitulo-titulo">Tu carta en una mirada</h2>
+      <div class="mirada-esencia">{{ interpretacion.carta_en_una_mirada.esencia }}</div>
+      <div class="mirada-grid">
+        <div class="mirada-card">
+          <div class="mirada-card-titulo">Tus mayores talentos</div>
+          <ul class="mirada-lista talentos">
+            {% for talento in interpretacion.carta_en_una_mirada.talentos %}
+            <li>{{ talento }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="mirada-card">
+          <div class="mirada-card-titulo">Tus mayores desafíos</div>
+          <ul class="mirada-lista desafios">
+            {% for desafio in interpretacion.carta_en_una_mirada.desafios %}
+            <li>{{ desafio }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="mirada-mision">
+        <span class="mirada-mision-label">Tu misión</span>
+        {{ interpretacion.carta_en_una_mirada.mision }}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="capitulo">
+      <h2 class="capitulo-titulo">Cómo leer este reporte</h2>
+      <p class="como-leer-texto">Este no es un documento para terminar en una sola tarde.</p>
+      <p class="como-leer-texto">Una carta natal revela diferentes significados según el momento de la vida en el que te encuentres. Es posible que algunas páginas resuenen profundamente hoy y que otras cobren sentido meses o incluso años después.</p>
+      <p class="como-leer-texto">Te invito a leer este reporte con curiosidad, no buscando respuestas absolutas, sino nuevas formas de comprenderte. Mientras lo recorres, recuerda:</p>
+      <ul class="como-leer-bullets">
+        <li>No es necesario leerlo todo en una sola sesión.</li>
+        <li>Vuelve a él cuando estés viviendo cambios, decisiones importantes o momentos de crecimiento.</li>
+        <li>Subraya las frases que más resuenen contigo y anota tus propias reflexiones.</li>
+        <li>Si alguna interpretación no encaja hoy, déjala reposar. Con el tiempo podrías descubrir un significado diferente.</li>
+      </ul>
+      <p class="como-leer-texto">Este reporte no pretende decirte quién eres, sino ofrecerte un mapa simbólico para explorar tu propio camino.</p>
+      <div class="como-leer-cita">
+        "La carta natal no cambia. Quien cambia eres tú. Por eso, cada nueva lectura puede revelar una perspectiva diferente."
+      </div>
+    </div>
+
+    {% if interpretacion.overview %}
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo I</div>
+      <h2 class="capitulo-titulo">Visión General</h2>
+      <div class="overview">{{ interpretacion.overview }}</div>
+    </div>
+    {% endif %}
+
+    {% if elementos_y_modalidades or dignidades %}
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo II</div>
+      <h2 class="capitulo-titulo">Elementos y Dignidades</h2>
+      {% if elementos_y_modalidades %}
+      <div class="panorama-grid">
+        <div class="panorama-card">
+          <div class="panorama-titulo">Elementos</div>
+          {% for elemento, cantidad in elementos_y_modalidades.conteo_elementos.items() %}
+          <div class="panorama-fila">
+            <span class="panorama-etiqueta">{{ elemento }}</span>
+            <span class="panorama-barra"><span class="panorama-relleno" style="width: {{ cantidad * 20 }}px;"></span></span>
+            <span class="panorama-valor">{{ cantidad }}</span>
+          </div>
+          {% endfor %}
+          <div class="panorama-dominante">Dominante: {{ elementos_y_modalidades.elemento_dominante }}</div>
+        </div>
+        <div class="panorama-card">
+          <div class="panorama-titulo">Modalidades</div>
+          {% for modalidad, cantidad in elementos_y_modalidades.conteo_modalidades.items() %}
+          <div class="panorama-fila">
+            <span class="panorama-etiqueta">{{ modalidad }}</span>
+            <span class="panorama-barra"><span class="panorama-relleno" style="width: {{ cantidad * 20 }}px;"></span></span>
+            <span class="panorama-valor">{{ cantidad }}</span>
+          </div>
+          {% endfor %}
+          <div class="panorama-dominante">Dominante: {{ elementos_y_modalidades.modalidad_dominante }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if dignidades %}
+      <div class="dignidades-card">
+        <div class="panorama-titulo">Dignidades Esenciales</div>
+        <table>
+          <tr><th>Planeta</th><th>Signo</th><th>Dignidad</th></tr>
+          {% for nombre, info in dignidades.items() %}
+          <tr><td>{{ nombre }}</td><td>{{ info.signo }}</td><td>{{ info.dignidad }}</td></tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+      {% if interpretacion.lectura_elementos_dignidades %}
+      <div class="lectura-patron">
+        <div class="lectura-patron-label">Lectura del Patrón</div>
+        <p class="lectura-patron-texto">{{ interpretacion.lectura_elementos_dignidades }}</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo III</div>
+      <h2 class="capitulo-titulo">Puntos Angulares</h2>
+      <table>
+        <tr><th>Punto</th><th>Signo</th><th>Grado</th></tr>
+        {% for nombre, datos in puntos_angulares.items() %}
+        <tr><td>{{ nombre }}</td><td>{{ datos.signo }}</td><td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td></tr>
+        {% endfor %}
+      </table>
+      {% if interpretacion.ascendente %}
+      <div class="planeta-bloque" style="margin-top: 24px;">
+        <div class="planeta-encabezado"><span class="planeta-simbolo">Asc</span><h3 class="planeta-nombre">Ascendente</h3></div>
+        <p class="interpretacion-texto">{{ interpretacion.ascendente }}</p>
+      </div>
+      {% endif %}
+      {% if interpretacion.medio_cielo %}
+      <div class="planeta-bloque">
+        <div class="planeta-encabezado"><span class="planeta-simbolo">MC</span><h3 class="planeta-nombre">Medio Cielo</h3></div>
+        <p class="interpretacion-texto">{{ interpretacion.medio_cielo }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo IV</div>
+      <h2 class="capitulo-titulo">Planetas</h2>
+      {% set simbolos = {
+        "Sol": "☉", "Luna": "☽", "Mercurio": "☿", "Venus": "♀", "Marte": "♂",
+        "Jupiter": "♃", "Saturno": "♄", "Urano": "♅", "Neptuno": "♆", "Pluton": "♇",
+        "NodoNorte": "☊", "Quiron": "⚷"
+      } %}
+      {% for nombre, datos in planetas.items() %}
+      <div class="planeta-bloque">
+        <div class="planeta-encabezado">
+          <span class="planeta-simbolo">{{ simbolos.get(nombre, "•") }}</span>
+          <h3 class="planeta-nombre">{{ nombre }}</h3>
+        </div>
+        <div class="planeta-datos">
+          {{ datos.signo }} {{ "%.2f"|format(datos.grado_en_signo) }}° · Casa {{ datos.casa }}
+          {% if datos.retrogrado %}<span class="retrogrado">· Retrógrado</span>{% endif %}
+        </div>
+        {% if datos.interpretacion %}
+        <p class="interpretacion-texto">{{ datos.interpretacion }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if aspectos %}
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo V</div>
+      <h2 class="capitulo-titulo">Aspectos</h2>
+      <table>
+        <tr><th>Punto A</th><th>Aspecto</th><th>Punto B</th><th>Orbe</th></tr>
+        {% for asp in aspectos %}
+        <tr><td>{{ asp.punto_a }}</td><td>{{ asp.aspecto }}</td><td>{{ asp.punto_b }}</td><td>{{ asp.orbe_usado }}°</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo VI</div>
+      <h2 class="capitulo-titulo">Casas</h2>
+      <table>
+        <tr><th>Casa</th><th>Signo</th><th>Grado</th></tr>
+        {% for numero, datos in casas.items() %}
+        <tr><td>{{ numero }}</td><td>{{ datos.signo }}</td><td>{{ "%.2f"|format(datos.grado_en_signo) }}°</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    {% if interpretacion.conclusion %}
+    <div class="capitulo">
+      <div class="capitulo-numero">Capítulo VII</div>
+      <h2 class="capitulo-titulo">Conclusión</h2>
+      <div class="conclusion">{{ interpretacion.conclusion }}</div>
+      <div class="disclaimer">
+        Esta interpretación fue generada con asistencia de inteligencia artificial como guía simbólica<br>
+        de autoconocimiento. No constituye consejo profesional, médico, legal ni financiero.<br>
+        Para decisiones importantes de vida, consulta siempre con un profesional cualificado.
+      </div>
+    </div>
+    {% endif %}
+
+    {% if interpretacion.frase_de_cierre %}
+    <div class="capitulo">
+      <div class="pagina-cierre">
+        <p class="frase-cierre">{{ interpretacion.frase_de_cierre }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <script src="/static/js/carta_web.js"></script>
+</body>
+</html>

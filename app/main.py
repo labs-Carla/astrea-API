@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -33,6 +34,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Sirve archivos estáticos (CSS, JS, imágenes) para la versión web del reporte,
+# accesibles en /static/... (ej. /static/css/carta_web.css)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(router, prefix="/api/v1")
 

@@ -57,12 +57,3 @@ def generar_html_reporte(metadata: dict, calculo: dict, interpretacion: dict) ->
     contexto = _construir_contexto(metadata, calculo, interpretacion)
     return template.render(**contexto)
 
-
-def generar_html_web_reporte(metadata: dict, calculo: dict, interpretacion: dict) -> str:
-    """
-    Renderiza la plantilla carta_web.html (versión web independiente,
-    sin dependencia del PDF) con los mismos datos.
-    """
-    template = _env.get_template("carta_web.html")
-    contexto = _construir_contexto(metadata, calculo, interpretacion)
-    return template.render(**contexto)

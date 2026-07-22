@@ -24,11 +24,11 @@ MAPEO_INTERPRETACION = {
     "Quiron": "quiron",
 }
 
-
-def _construir_contexto(metadata: dict, calculo: dict, interpretacion: dict) -> dict:
+def construir_contexto(metadata: dict, calculo: dict, interpretacion: dict) -> dict:
     """
-    Arma el diccionario de contexto compartido entre la plantilla de PDF
-    y la plantilla web, para no duplicar el mapeo planeta-interpretacion.
+    Arma el diccionario con planetas ya cruzados con su interpretación
+    (join hecho en backend). Usado tanto para renderizar el PDF como
+    para el endpoint JSON que consume el frontend.
     """
     planetas_con_interpretacion = {}
     for nombre, datos in calculo["planetas"].items():
@@ -49,11 +49,7 @@ def _construir_contexto(metadata: dict, calculo: dict, interpretacion: dict) -> 
 
 
 def generar_html_reporte(metadata: dict, calculo: dict, interpretacion: dict) -> str:
-    """
-    Renderiza la plantilla carta_report.html (usada para el PDF) con los
-    datos calculados y la interpretación generada por IA.
-    """
     template = _env.get_template("carta_report.html")
-    contexto = _construir_contexto(metadata, calculo, interpretacion)
+    contexto = construir_contexto(metadata, calculo, interpretacion)
     return template.render(**contexto)
 

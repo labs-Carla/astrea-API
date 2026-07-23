@@ -2,7 +2,7 @@ import json
 from fastapi import Request
 from app.core.limiter import limiter
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import DatosNacimiento
+from app.models.schemas import DatosNacimiento, DatosCompra
 from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
 from app.services.astro_service import calcular_casas, calcular_posiciones_planetarias
 from fastapi.responses import HTMLResponse
@@ -23,11 +23,13 @@ from app.services.persistence_service import (
     guardar_resumen,
     guardar_carta_completa,
     actualizar_con_interpretacion,
+    actualizar_datos_compra,
     deserializar_carta,
 )
 
 from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.geocoding_service import geocodificar_ciudad
+
 
 
 router = APIRouter()
@@ -200,6 +202,41 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
             media_type="application/pdf",
             headers={"Content-Disposition": "attachment; filename=carta_natal.pdf"},
         )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/carta-natal/compra")
+async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
+    """
+    Recibe los datos enviados desde gracias.html tras una compra en Hotmart.
+    Dispara el calculo astronomico y la interpretacion completa via IA (si no
+    existian ya), y guarda nombre_reporte + email para revision manual antes
+    de aprobar el envio del link de acceso al cliente.
+    """
+    try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
+
+        if carta_existente is not None:
+            calculo, _, interpretacion = deserializar_carta(carta_existente)
+
+            if interpretacion is None:
+                interpretacion = await interpretar_carta_completa(calculo)
+                carta_existente = actualizar_con_interpretacion(db, carta_existente, interpretacion)
+
+            carta_existente = actualizar_datos_compra(db, carta_existente, datos.nombre, datos.email)
+        else:
+            resultado = _calcular_todo(datos, latitud, longitud)
+            calculo = resultado["calculo"]
+            interpretacion = await interpretar_carta_completa(calculo)
+            guardar_carta_completa(
+                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion,
+                nombre_reporte=datos.nombre, email=datos.email,
+            )
+
+        return {"status": "recibido", "mensaje": "Datos guardados, tu lectura esta siendo preparada."}
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

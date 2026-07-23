@@ -55,10 +55,14 @@ def guardar_carta_completa(
     longitud: float,
     calculo: dict,
     interpretacion: dict,
+    nombre_reporte: str | None = None,
+    email: str | None = None,
 ) -> CartaNatalGuardada:
     """
     Guarda una carta nueva generada directamente en premium (sin haber pasado
     antes por el flujo gratuito): calculo + interpretacion, sin resumen_json.
+    nombre_reporte y email se llenan cuando viene del flujo de compra
+    (gracias.html); quedan None si es una prueba interna o el flujo gratuito.
     """
     nueva_carta = CartaNatalGuardada(
         fecha_hora_local=fecha_hora_local,
@@ -67,6 +71,8 @@ def guardar_carta_completa(
         calculo_json=json.dumps(calculo),
         interpretacion_json=json.dumps(interpretacion),
         resumen_json=None,
+        nombre_reporte=nombre_reporte,
+        email=email,
     )
     db.add(nueva_carta)
     db.commit()
@@ -83,6 +89,21 @@ def actualizar_con_interpretacion(
     — no se recalcula Swiss Ephemeris, porque ya se calculó cuando se generó el resumen.
     """
     carta.interpretacion_json = json.dumps(interpretacion)
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+
+def actualizar_datos_compra(
+    db: Session, carta: CartaNatalGuardada, nombre_reporte: str, email: str
+) -> CartaNatalGuardada:
+    """
+    Actualiza una carta ya existente (típicamente generada antes por el flujo
+    gratuito) con los datos de la compra premium: nombre_reporte y email,
+    necesarios para el envío posterior del link de acceso.
+    """
+    carta.nombre_reporte = nombre_reporte
+    carta.email = email
     db.commit()
     db.refresh(carta)
     return carta

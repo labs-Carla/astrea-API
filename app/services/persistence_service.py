@@ -108,6 +108,29 @@ def actualizar_datos_compra(
     db.refresh(carta)
     return carta
 
+def listar_pendientes_de_aprobacion(db: Session) -> list[CartaNatalGuardada]:
+    """
+    Lista las cartas que vienen del flujo de compra (tienen email) y aun no
+    han sido aprobadas/enviadas al cliente. Usado por el panel de admin.
+    """
+    return (
+        db.query(CartaNatalGuardada)
+        .filter(
+            CartaNatalGuardada.email.isnot(None),
+            CartaNatalGuardada.enviado.is_(False),
+        )
+        .order_by(CartaNatalGuardada.fecha_generacion.desc())
+        .all()
+    )
+
+
+def obtener_carta_por_id(db: Session, carta_id: int) -> CartaNatalGuardada | None:
+    """
+    Busca una carta por su id (usado por el panel de admin para ver el
+    detalle antes de aprobar el envio).
+    """
+    return db.query(CartaNatalGuardada).filter(CartaNatalGuardada.id == carta_id).first()
+
 
 def deserializar_carta(carta: CartaNatalGuardada) -> tuple[dict, dict | None, dict | None]:
     """

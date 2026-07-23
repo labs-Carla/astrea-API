@@ -9,11 +9,10 @@ from fastapi.responses import HTMLResponse
 from app.services.report_service import generar_html_reporte, construir_contexto
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
-
 from app.services.interpretation_service import interpretar_carta_completa
 from app.services.resumen_deterministico_service import generar_resumen_deterministico
-
 from app.services.aspectos_service import calcular_todos_los_aspectos
+from app.core.admin_auth import verificar_admin_secret
 
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -24,6 +23,8 @@ from app.services.persistence_service import (
     guardar_carta_completa,
     actualizar_con_interpretacion,
     actualizar_datos_compra,
+    listar_pendientes_de_aprobacion,
+    obtener_carta_por_id,
     deserializar_carta,
 )
 
@@ -240,6 +241,25 @@ async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/admin/pendientes", dependencies=[Depends(verificar_admin_secret)])
+def listar_pendientes(db: Session = Depends(get_db)):
+    """
+    Devuelve la lista de cartas pendientes de revision/aprobacion: las que
+    vienen del flujo de compra (tienen email) y aun no se les envio el link.
+    """
+    pendientes = listar_pendientes_de_aprobacion(db)
+    return [
+        {
+            "id": carta.id,
+            "nombre_reporte": carta.nombre_reporte,
+            "email": carta.email,
+            "fecha_hora_local": carta.fecha_hora_local.isoformat(),
+            "fecha_generacion": carta.fecha_generacion.isoformat() if carta.fecha_generacion else None,
+        }
+        for carta in pendientes
+    ]
 
 
 @router.post("/test-interpretacion-completa")

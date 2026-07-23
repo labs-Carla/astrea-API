@@ -261,6 +261,34 @@ def listar_pendientes(db: Session = Depends(get_db)):
         for carta in pendientes
     ]
 
+@router.get("/admin/carta/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+def ver_detalle_carta(carta_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve el detalle completo de una carta (calculo + interpretacion) para
+    que el admin revise la calidad antes de aprobar el envio al cliente.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    calculo, _, interpretacion = deserializar_carta(carta)
+
+    if interpretacion is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Esta carta aun no tiene interpretacion completa generada.",
+        )
+
+    return {
+        "id": carta.id,
+        "nombre_reporte": carta.nombre_reporte,
+        "email": carta.email,
+        "enviado": carta.enviado,
+        "calculo": calculo,
+        "interpretacion": interpretacion,
+    }
+
 
 @router.post("/test-interpretacion-completa")
 async def test_interpretacion_completa(datos: DatosNacimiento):

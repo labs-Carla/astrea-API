@@ -163,3 +163,32 @@ def buscar_carta_por_token(db: Session, token: str) -> CartaNatalGuardada | None
     que consume el cliente final via /r/{token}).
     """
     return db.query(CartaNatalGuardada).filter(CartaNatalGuardada.token == token).first()
+
+def actualizar_genero(db: Session, carta: CartaNatalGuardada, genero: str) -> CartaNatalGuardada:
+    """
+    Actualiza el campo genero de una carta existente, usado para ajustar la
+    concordancia de genero en espanol en ambas llamadas a Claude.
+    """
+    carta.genero = genero
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+
+def guardar_areas_de_vida(db: Session, carta: CartaNatalGuardada, areas_de_vida: dict) -> CartaNatalGuardada:
+    """
+    Guarda el resultado de la segunda llamada a Claude (vocacion, dinero,
+    amor, herida/don, aspectos interpretados, plan de accion, brujula).
+    """
+    carta.areas_de_vida_json = json.dumps(areas_de_vida)
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+
+def obtener_areas_de_vida(carta: CartaNatalGuardada) -> dict | None:
+    """
+    Deserializa areas_de_vida_json de vuelta a dict. Funcion separada de
+    deserializar_carta a proposito, para no cambiar su firma existente.
+    """
+    return json.loads(carta.areas_de_vida_json) if carta.areas_de_vida_json else None

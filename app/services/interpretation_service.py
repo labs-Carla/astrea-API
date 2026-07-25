@@ -327,10 +327,10 @@ Devuelve un JSON con exactamente esta forma:
     // valores de punto_a/aspecto/punto_b que se te dieron (no los traduzcas ni cambies el formato)
   ],
   "plan_de_accion": {{
-    "potencia": ["2-3 fortalezas concretas de esta carta que la persona deberia potenciar activamente, frases breves de 3-8 palabras"],
-    "observa": ["2-3 patrones que la persona deberia observar con mas consciencia, frases breves"],
-    "evita": ["2-3 comportamientos o tendencias que conviene evitar segun esta carta, frases breves"],
-    "empieza": ["2-3 acciones concretas y accionables que la persona podria empezar a partir de esta lectura, frases breves"]
+    "potencia": ["3-4 fortalezas de esta carta especifica (no genericas) que conviene potenciar activamente, cada una como una frase accionable de 8-15 palabras en SEGUNDA PERSONA (tu/tus), conectada a un dato concreto de la carta (ej. 'Usa tu Marte en domicilio para liderar proyectos donde puedas decidir rapido')"],
+    "observa": ["3-4 patrones especificos de esta carta que conviene observar con mas consciencia, mismo formato: 8-15 palabras, segunda persona, conectado a un dato concreto de la carta"],
+    "evita": ["3-4 comportamientos o tendencias especificos de esta carta que conviene evitar, mismo formato: 8-15 palabras, segunda persona, conectado a un dato concreto de la carta"],
+    "empieza": ["3-4 acciones concretas y accionables (algo que la persona pueda literalmente hacer esta semana) que se desprenden de esta lectura, mismo formato: 8-15 palabras, segunda persona"]
   }},
   "brujula": {{
     "aprendizajes": ["exactamente 5 aprendizajes clave que esta carta ofrece, cada uno una frase breve y memorable"],

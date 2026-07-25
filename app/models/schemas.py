@@ -111,11 +111,10 @@ class AspectoInterpretado(BaseModel):
     interpretacion: str = Field(..., min_length=80, max_length=900, description="Interpretacion breve de que significa este aspecto especifico en la vida de la persona")
 
 class PlanDeAccion(BaseModel):
-    potencia: list[str] = Field(..., min_length=2, max_length=3, description="2-3 fortalezas concretas a potenciar, frases breves")
-    observa: list[str] = Field(..., min_length=2, max_length=3, description="2-3 patrones a observar con consciencia, frases breves")
-    evita: list[str] = Field(..., min_length=2, max_length=3, description="2-3 comportamientos o tendencias a evitar, frases breves")
-    empieza: list[str] = Field(..., min_length=2, max_length=3, description="2-3 acciones concretas para empezar, frases breves")
-
+    potencia: list[str] = Field(..., min_length=3, max_length=4, description="3-4 fortalezas concretas a potenciar, frases breves")
+    observa: list[str] = Field(..., min_length=3, max_length=4, description="3-4 patrones a observar con consciencia, frases breves")
+    evita: list[str] = Field(..., min_length=3, max_length=4, description="3-4 comportamientos o tendencias a evitar, frases breves")
+    empieza: list[str] = Field(..., min_length=3, max_length=4, description="3-4 acciones concretas para empezar, frases breves")
 
 class BrujulaPersonal(BaseModel):
     aprendizajes: list[str] = Field(..., min_length=5, max_length=5, description="Los 5 aprendizajes mas importantes que esta carta ofrece")

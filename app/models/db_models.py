@@ -31,6 +31,7 @@ class CartaNatalGuardada(Base):
     calculo_json = Column(Text, nullable=False)
     resumen_json = Column(Text, nullable=True)
     interpretacion_json = Column(Text, nullable=True)  # antes era nullable=False
+    areas_de_vida_json = Column(Text, nullable=True)  # segunda llamada a Claude: vocacion, dinero, amor, etc.
 
     # Datos de la compra premium (llenados cuando el cliente pasa por
     # formulario.html tras comprar en Hotmart). Nulos si la carta solo

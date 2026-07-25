@@ -86,3 +86,61 @@ def calcular_posiciones_planetarias(dia_juliano: float, latitud: float, armc: fl
         }
 
     return posiciones
+
+def calcular_posiciones_transito(dia_juliano: float) -> dict:
+    """
+    Calcula las posiciones planetarias actuales ("de transito") para un dia
+    juliano dado, sin necesidad de casas propias (los transitos se leen
+    contra las casas de la carta NATAL, no tienen casas propias). Reutiliza
+    la misma logica de obtener_signo/velocidad que calcular_posiciones_planetarias,
+    pero sin el calculo de casa (eso se hace aparte, comparando contra la
+    carta natal via determinar_casa_natal).
+    """
+    swe.set_ephe_path(_RUTA_EPHE)
+    posiciones = {}
+
+    for nombre, codigo in PLANETAS.items():
+        resultado, _ = swe.calc_ut(dia_juliano, codigo, FLAGS)
+        longitud_eclip = resultado[0]
+        velocidad = resultado[3]
+
+        signo, grado_en_signo = obtener_signo(longitud_eclip)
+
+        posiciones[nombre] = {
+            "longitud_absoluta": longitud_eclip,
+            "signo": signo,
+            "grado_en_signo": grado_en_signo,
+            "velocidad": velocidad,
+            "retrogrado": velocidad < 0,
+        }
+
+    return posiciones
+
+
+def determinar_casa_natal(grado_absoluto: float, casas_natales: dict) -> int:
+    """
+    Determina en que casa NATAL cae un grado absoluto (tipicamente la
+    posicion de un planeta en transito), comparando contra las cuspides
+    ya calculadas de la carta natal. casas_natales es el dict {numero: {...}}
+    que ya devuelve calcular_casas().
+
+    Recorre las 12 casas en orden y verifica si el grado cae en el arco
+    entre la cuspide de esa casa y la cuspide de la siguiente (manejando
+    el caso de que el arco cruce el 0°/360°).
+    """
+    grado_absoluto = grado_absoluto % 360
+
+    for numero_casa in range(1, 13):
+        cuspide_actual = casas_natales[numero_casa]["longitud_absoluta"]
+        siguiente_numero = numero_casa + 1 if numero_casa < 12 else 1
+        cuspide_siguiente = casas_natales[siguiente_numero]["longitud_absoluta"]
+
+        if cuspide_actual < cuspide_siguiente:
+            if cuspide_actual <= grado_absoluto < cuspide_siguiente:
+                return numero_casa
+        else:
+            # El arco cruza 0°/360° (ej. cuspide en 350°, siguiente en 20°)
+            if grado_absoluto >= cuspide_actual or grado_absoluto < cuspide_siguiente:
+                return numero_casa
+
+    return 1  # fallback, no deberia llegar aqui si las 12 cuspides estan bien formadas

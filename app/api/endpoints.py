@@ -397,6 +397,8 @@ def test_aspectos(datos: DatosNacimiento):
 class ConversionAPremium(BaseModel):
     nombre_reporte: str | None = None
     email: str | None = None
+    genero: str | None = None
+    forzar: bool = False
 
 
 @router.post("/admin/generar-interpretacion/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
@@ -404,11 +406,11 @@ async def generar_interpretacion_admin(
     carta_id: int, datos: ConversionAPremium, db: Session = Depends(get_db)
 ):
     """
-    Genera la interpretacion completa via IA para una carta que ya existe
-    (tipicamente solo con resumen gratuito), reutilizando el calculo_json
-    ya guardado (sin recalcular Swiss Ephemeris). Opcionalmente completa
-    nombre_reporte/email si la carta viene del flujo gratis (que no los
-    captura) y nunca paso por /carta-natal/compra.
+    Genera la interpretacion completa via IA para una carta que ya existe,
+    reutilizando el calculo_json ya guardado. Opcionalmente completa
+    nombre_reporte/email/genero. Si forzar=True, regenera aunque ya exista
+    interpretacion (util para corregir concordancia de genero en cartas
+    generadas antes de que este campo existiera).
     """
     carta = obtener_carta_por_id(db, carta_id)
 
@@ -418,12 +420,15 @@ async def generar_interpretacion_admin(
     if datos.nombre_reporte and datos.email:
         carta = actualizar_datos_compra(db, carta, datos.nombre_reporte, datos.email)
 
+    if datos.genero:
+        carta = actualizar_genero(db, carta, datos.genero)
+
     calculo, _, interpretacion = deserializar_carta(carta)
 
-    if interpretacion is not None:
+    if interpretacion is not None and not datos.forzar:
         return {"status": "ya_existia", "mensaje": "Esta carta ya tenia interpretacion generada."}
 
-    interpretacion = await interpretar_carta_completa(calculo)
+    interpretacion = await interpretar_carta_completa(calculo, carta.genero)
     actualizar_con_interpretacion(db, carta, interpretacion)
 
     return {"status": "generada", "mensaje": "Interpretacion generada correctamente."}
@@ -444,6 +449,7 @@ def test_dignidades_elementos(datos: DatosNacimiento):
 
 class GenerarAreasDeVidaRequest(BaseModel):
     genero: str | None = None
+    forzar: bool = False
 
 
 @router.post("/admin/generar-areas-de-vida/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
@@ -454,7 +460,8 @@ async def generar_areas_de_vida_admin(
     Genera la segunda llamada a Claude (vocacion, dinero, amor, herida/don,
     aspectos interpretados, plan de accion, brujula) para una carta que ya
     tiene el calculo_json guardado. Opcionalmente actualiza el genero de la
-    carta antes de generar, para ajustar la concordancia en espanol.
+    carta antes de generar. Si forzar=True, regenera aunque ya existan
+    areas de vida validas.
     """
     carta = obtener_carta_por_id(db, carta_id)
 
@@ -465,7 +472,7 @@ async def generar_areas_de_vida_admin(
         carta = actualizar_genero(db, carta, datos.genero)
 
     areas_existentes = obtener_areas_de_vida(carta)
-    if areas_existentes is not None and "_validation_error" not in areas_existentes:
+    if areas_existentes is not None and "_validation_error" not in areas_existentes and not datos.forzar:
         return {"status": "ya_existia", "mensaje": "Esta carta ya tenia areas de vida generadas."}
 
     calculo, _, _ = deserializar_carta(carta)
@@ -473,5 +480,3 @@ async def generar_areas_de_vida_admin(
     guardar_areas_de_vida(db, carta, areas_de_vida)
 
     return {"status": "generada", "mensaje": "Areas de vida generadas correctamente."}
-
-    

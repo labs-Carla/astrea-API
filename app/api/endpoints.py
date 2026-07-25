@@ -174,7 +174,10 @@ def generar_carta_natal_data(datos: DatosNacimiento, db: Session = Depends(get_d
             )
 
         metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
-        return construir_contexto(metadata, calculo, interpretacion)
+        contexto = construir_contexto(metadata, calculo, interpretacion)
+        contexto["areas_de_vida"] = obtener_areas_de_vida(carta_existente)
+
+        return contexto
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -351,7 +354,9 @@ def obtener_carta_por_token(token: str, db: Session = Depends(get_db)):
         "pais": None,
     }
 
-    return construir_contexto(metadata, calculo, interpretacion)
+    contexto = construir_contexto(metadata, calculo, interpretacion)
+    contexto["areas_de_vida"] = obtener_areas_de_vida(carta)
+    return contexto
 
 
 @router.post("/test-interpretacion-completa")

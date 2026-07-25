@@ -131,3 +131,17 @@ class InterpretacionAreasDeVida(BaseModel):
     aspectos_interpretados: list[AspectoInterpretado] = Field(..., description="Interpretacion de cada uno de los aspectos mas relevantes recibidos como input")
     plan_de_accion: PlanDeAccion
     brujula: BrujulaPersonal
+
+class ProximosMeses(BaseModel):
+    carrera: str = Field(..., min_length=80, max_length=700, description="Que viene en los proximos 3-6 meses en el area de carrera/vocacion")
+    amor: str = Field(..., min_length=80, max_length=700, description="Que viene en los proximos 3-6 meses en el area de amor/relaciones")
+    dinero: str = Field(..., min_length=80, max_length=700, description="Que viene en los proximos 3-6 meses en el area de dinero/recursos")
+    crecimiento: str = Field(..., min_length=80, max_length=700, description="Que viene en los proximos 3-6 meses en el area de crecimiento personal/interior")
+    
+class InterpretacionTransitos(BaseModel):
+    clima_energetico: str = Field(..., min_length=100, max_length=1100, description="Descripcion general del clima energetico actual segun los transitos activos")
+    areas_activadas: list[str] = Field(..., min_length=2, max_length=4, description="2-4 areas de vida activadas ahora mismo, frases breves")
+    oportunidades: str = Field(..., min_length=80, max_length=900, description="Oportunidades que ofrece el momento actual segun los transitos")
+    retos: str = Field(..., min_length=80, max_length=900, description="Retos o tensiones del momento actual segun los transitos")
+    consejo: str = Field(..., min_length=60, max_length=700, description="Consejo practico y accionable para navegar este momento")
+    proximos_meses: ProximosMeses

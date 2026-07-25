@@ -9,7 +9,8 @@ from fastapi.responses import HTMLResponse
 from app.services.report_service import generar_html_reporte, construir_contexto
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
-from app.services.interpretation_service import interpretar_carta_completa, interpretar_areas_de_vida
+from app.services.interpretation_service import interpretar_carta_completa, interpretar_areas_de_vida, interpretar_transitos
+from app.services.transitos_service import calcular_transitos_actuales
 from app.services.resumen_deterministico_service import generar_resumen_deterministico
 from app.services.aspectos_service import calcular_todos_los_aspectos
 from app.core.admin_auth import verificar_admin_secret
@@ -31,6 +32,8 @@ from app.services.persistence_service import (
     actualizar_genero,
     guardar_areas_de_vida,
     obtener_areas_de_vida,
+    guardar_transitos,
+    obtener_transitos,
     deserializar_carta,
 )
 
@@ -176,6 +179,7 @@ def generar_carta_natal_data(datos: DatosNacimiento, db: Session = Depends(get_d
         metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
         contexto = construir_contexto(metadata, calculo, interpretacion)
         contexto["areas_de_vida"] = obtener_areas_de_vida(carta_existente)
+        contexto["transitos"] = obtener_transitos(carta_existente)
 
         return contexto
 
@@ -356,6 +360,7 @@ def obtener_carta_por_token(token: str, db: Session = Depends(get_db)):
 
     contexto = construir_contexto(metadata, calculo, interpretacion)
     contexto["areas_de_vida"] = obtener_areas_de_vida(carta)
+    contexto["transitos"] = obtener_transitos(carta)
     return contexto
 
 
@@ -480,3 +485,36 @@ async def generar_areas_de_vida_admin(
     guardar_areas_de_vida(db, carta, areas_de_vida)
 
     return {"status": "generada", "mensaje": "Areas de vida generadas correctamente."}
+
+class GenerarTransitosRequest(BaseModel):
+    genero: str | None = None
+    forzar: bool = False
+
+
+@router.post("/admin/generar-transitos/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+async def generar_transitos_admin(
+    carta_id: int, datos: GenerarTransitosRequest, db: Session = Depends(get_db)
+):
+    """
+    Calcula el clima energetico actual (transitos de hoy vs carta natal) y
+    genera la tercera llamada a Claude (clima energetico + proximos meses).
+    Es una foto fija del momento de aprobacion, no se actualiza sola despues.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    if datos.genero:
+        carta = actualizar_genero(db, carta, datos.genero)
+
+    transitos_existentes = obtener_transitos(carta)
+    if transitos_existentes is not None and "_validation_error" not in transitos_existentes and not datos.forzar:
+        return {"status": "ya_existia", "mensaje": "Esta carta ya tenia transitos generados."}
+
+    calculo, _, _ = deserializar_carta(carta)
+    transitos_calculados = calcular_transitos_actuales(calculo)
+    interpretacion_transitos = await interpretar_transitos(calculo, transitos_calculados, carta.genero)
+    guardar_transitos(db, carta, interpretacion_transitos)
+
+    return {"status": "generada", "mensaje": "Transitos generados correctamente."}

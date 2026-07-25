@@ -192,3 +192,20 @@ def obtener_areas_de_vida(carta: CartaNatalGuardada) -> dict | None:
     deserializar_carta a proposito, para no cambiar su firma existente.
     """
     return json.loads(carta.areas_de_vida_json) if carta.areas_de_vida_json else None
+
+def guardar_transitos(db: Session, carta: CartaNatalGuardada, transitos: dict) -> CartaNatalGuardada:
+    """
+    Guarda el resultado de la tercera llamada a Claude (clima energetico
+    actual y proximos meses). Es una foto fija del momento de aprobacion.
+    """
+    carta.transitos_json = json.dumps(transitos)
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+
+def obtener_transitos(carta: CartaNatalGuardada) -> dict | None:
+    """
+    Deserializa transitos_json de vuelta a dict.
+    """
+    return json.loads(carta.transitos_json) if carta.transitos_json else None

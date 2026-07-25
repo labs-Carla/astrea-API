@@ -70,3 +70,27 @@ def calcular_todos_los_aspectos(puntos: dict, orbe: float = ORBE_DEFAULT) -> lis
                 })
 
     return aspectos_encontrados
+
+def calcular_aspectos_transito_natal(puntos_transito: dict, puntos_natales: dict, orbe: float = ORBE_DEFAULT) -> list[dict]:
+    """
+    Calcula aspectos entre los planetas en transito (posiciones de "hoy") y
+    los puntos de la carta natal (planetas + Ascendente + Medio Cielo).
+    A diferencia de calcular_todos_los_aspectos (que compara puntos dentro
+    de un mismo conjunto sin repetir pares), aqui cada punto en transito se
+    compara contra CADA punto natal — son dos conjuntos distintos, así que
+    no aplica la logica de "no repetir pares" ni la exclusion Ascendente-MC.
+    """
+    aspectos_encontrados = []
+
+    for nombre_transito, grado_transito in puntos_transito.items():
+        for nombre_natal, grado_natal in puntos_natales.items():
+            resultado = detectar_aspecto(grado_transito, grado_natal, orbe)
+
+            if resultado is not None:
+                aspectos_encontrados.append({
+                    "planeta_transito": nombre_transito,
+                    "punto_natal": nombre_natal,
+                    **resultado,
+                })
+
+    return aspectos_encontrados

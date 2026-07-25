@@ -41,11 +41,12 @@ def _construir_prompt_usuario(calculo: dict, genero: str | None = None) -> str:
     lineas = ["Interpreta esta carta natal completa:\n"]
 
     if genero == "femenino":
-        lineas.append("Genero de la persona: femenino. Ajusta la concordancia gramatical de adjetivos y participios a femenino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente — el mismo estilo narrativo natural que usarias si no conocieras el genero, solo que con las terminaciones correctas.\n")
+        lineas.append("Genero de la persona: femenino. Ajusta la concordancia gramatical de adjetivos y participios a femenino en toda la interpretacion (ej. 'analitica', 'reservada'). PROHIBIDO usar las frases 'esta mujer' o 'esta persona es una mujer' como sujeto de una oracion — nunca nombres el genero como sustantivo. En su lugar, omite el sujeto (el espanol permite sujeto tacito: 'tiene', 'siente', 'busca' sin necesidad de decir 'ella' o 'esta mujer') o usa el pronombre 'ella' con moderacion, maximo 1-2 veces en todo el texto.\n")
     elif genero == "masculino":
-        lineas.append("Genero de la persona: masculino. Ajusta la concordancia gramatical de adjetivos y participios a masculino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente — el mismo estilo narrativo natural que usarias si no conocieras el genero, solo que con las terminaciones correctas.\n")
+        lineas.append("Genero de la persona: masculino. Ajusta la concordancia gramatical de adjetivos y participios a masculino en toda la interpretacion (ej. 'analitico', 'reservado'). PROHIBIDO usar las frases 'este hombre' o 'esta persona es un hombre' como sujeto de una oracion — nunca nombres el genero como sustantivo. En su lugar, omite el sujeto (el espanol permite sujeto tacito: 'tiene', 'siente', 'busca' sin necesidad de decir 'el' o 'este hombre') o usa el pronombre 'el' con moderacion, maximo 1-2 veces en todo el texto.\n")
     else:
         lineas.append("IMPORTANTE: no se especifico el genero de la persona. Usa lenguaje neutro donde sea posible.\n")
+
 
 
     lineas.append("--- Puntos Angulares ---")
@@ -293,9 +294,9 @@ def _construir_prompt_areas_de_vida(calculo: dict, genero: str | None = None) ->
     lineas = ["Escribe la segunda parte del reporte de esta carta natal (areas de vida practicas):\n"]
 
     if genero == "femenino":
-        lineas.append("Genero de la persona: femenino. Ajusta la concordancia gramatical de adjetivos y participios a femenino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente.\n")
+        lineas.append("Genero de la persona: femenino. Ajusta la concordancia gramatical de adjetivos y participios a femenino en toda la interpretacion (ej. 'analitica', 'reservada'). PROHIBIDO usar las frases 'esta mujer' o 'esta persona es una mujer' como sujeto de una oracion — nunca nombres el genero como sustantivo. En su lugar, omite el sujeto (el espanol permite sujeto tacito: 'tiene', 'siente', 'busca' sin necesidad de decir 'ella' o 'esta mujer') o usa el pronombre 'ella' con moderacion, maximo 1-2 veces en todo el texto.\n")
     elif genero == "masculino":
-        lineas.append("Genero de la persona: masculino. Ajusta la concordancia gramatical de adjetivos y participios a masculino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente.\n")
+        lineas.append("Genero de la persona: masculino. Ajusta la concordancia gramatical de adjetivos y participios a masculino en toda la interpretacion (ej. 'analitico', 'reservado'). PROHIBIDO usar las frases 'este hombre' o 'esta persona es un hombre' como sujeto de una oracion — nunca nombres el genero como sustantivo. En su lugar, omite el sujeto (el espanol permite sujeto tacito: 'tiene', 'siente', 'busca' sin necesidad de decir 'el' o 'este hombre') o usa el pronombre 'el' con moderacion, maximo 1-2 veces en todo el texto.\n")
     else:
         lineas.append("IMPORTANTE: no se especifico el genero de la persona. Usa lenguaje neutro donde sea posible.\n")
 

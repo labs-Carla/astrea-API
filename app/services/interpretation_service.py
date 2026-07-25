@@ -2,7 +2,7 @@ import json
 from anthropic import AsyncAnthropic
 from pydantic import ValidationError
 from app.core.config import settings
-from app.models.schemas import InterpretacionCompleta, InterpretacionResumen
+from app.models.schemas import InterpretacionCompleta, InterpretacionResumen, InterpretacionAreasDeVida
 
 
 
@@ -233,6 +233,123 @@ async def interpretar_resumen_gratuito(calculo: dict) -> dict:
         datos_json = json.loads(texto_limpio)
         resumen_validado = InterpretacionResumen(**datos_json)
         return resumen_validado.model_dump()
+    except (json.JSONDecodeError, ValidationError) as e:
+        return {
+            "_validation_error": str(e),
+            "_raw_response": texto_crudo,
+        }
+
+SYSTEM_PROMPT_AREAS_DE_VIDA = """Eres un astrólogo profesional experimentado, con un enfoque psicológico moderno
+y muy práctico. Vas a escribir la segunda parte de un reporte de carta natal premium: las áreas de vida
+concretas (vocación, dinero, amor), la herida y el don de Quirón, la interpretación de los aspectos más
+relevantes, y un plan de acción práctico.
+
+Reglas estrictas que debes seguir siempre:
+- Habla en términos de arquetipo, tendencia y potencial — nunca en términos deterministas o de predicción literal.
+- Nunca afirmes categóricamente eventos futuros específicos, diagnósticos de salud, ni resultados financieros garantizados.
+- Sé concreto y aplicable, no solo descriptivo. Estas secciones son las más prácticas del reporte — la persona
+  debe terminar de leerlas con ideas claras de qué hacer con la información, no solo con autoconocimiento abstracto.
+- Tono cálido, claro y humano — como un astrólogo guiando a la persona a conocerse mejor, no un texto técnico
+  ni un horóscopo genérico.
+- Usa español latinoamericano neutro y cotidiano. Evita palabras rebuscadas, arcaicas o de registro muy
+  literario/formal — prefiere el equivalente natural y directo que usaría alguien hablando en la vida diaria.
+- Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes o después, ni bloques de markdown.
+"""
+
+
+def _filtrar_aspectos_principales(aspectos: list[dict], top_n: int = 10) -> list[dict]:
+    """
+    Selecciona los aspectos mas relevantes de la carta, ordenados por orbe
+    (menor orbe = aspecto mas exacto = mas influyente). Usado para no pedirle
+    a Claude que interprete los ~30 aspectos que puede tener una carta, solo
+    los que realmente importan.
+    """
+    return sorted(aspectos, key=lambda a: a["orbe_usado"])[:top_n]
+
+
+def _construir_prompt_areas_de_vida(calculo: dict) -> str:
+    planetas = calculo["planetas"]
+    puntos_angulares = calculo["puntos_angulares"]
+    aspectos_principales = _filtrar_aspectos_principales(calculo.get("aspectos", []))
+    quiron = planetas.get("Quiron")
+
+    lineas = ["Escribe la segunda parte del reporte de esta carta natal (areas de vida practicas):\n"]
+
+    lineas.append("--- Puntos Angulares ---")
+    for nombre, datos in puntos_angulares.items():
+        lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°")
+
+    lineas.append("\n--- Planetas y Puntos ---")
+    for nombre, datos in planetas.items():
+        retro = " (retrógrado)" if datos["retrogrado"] else ""
+        lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°, Casa {datos['casa']}{retro}")
+
+    if quiron:
+        lineas.append(f"\n--- Quiron (para Herida y Don) ---")
+        lineas.append(f"Quiron: {quiron['signo']} {quiron['grado_en_signo']:.2f}°, Casa {quiron['casa']}")
+
+    lineas.append("\n--- Aspectos principales a interpretar individualmente ---")
+    for asp in aspectos_principales:
+        lineas.append(f"{asp['punto_a']} {asp['aspecto']} {asp['punto_b']} (orbe {asp['orbe_usado']}°)")
+
+    lineas.append(f"""
+Devuelve un JSON con exactamente esta forma:
+{{
+  "vocacion": "forma de trabajar, liderazgo, profesiones afines, donde puede destacar y que puede frenarle
+    profesionalmente, basado en Medio Cielo, Casa 10, Sol, Saturno y planetas relevantes (150-250 palabras)",
+  "dinero": "relacion con el dinero, como genera recursos, bloqueos, oportunidades y estrategias de crecimiento,
+    basado en Casa 2, Casa 8, Venus, Jupiter y planetas relevantes (150-250 palabras)",
+  "amor": "como ama, que necesita, patrones relacionales, compatibilidad emocional y aprendizajes afectivos,
+    basado en Venus, Marte, Luna, Casa 5, Casa 7 y planetas relevantes (150-250 palabras)",
+  "herida_y_don": "interpretacion de Quiron enfocada en: que herida representa, como aparece concretamente en
+    la vida de la persona, como puede empezar a sanarla, y cual es el don o regalo que existe detras de esa
+    herida una vez trabajada (150-250 palabras)",
+  "aspectos_interpretados": [
+    {{"punto_a": "...", "aspecto": "...", "punto_b": "...", "interpretacion": "que significa este aspecto
+      especifico en la vida de la persona, en terminos concretos y aplicables (80-150 palabras)"}}
+    // uno de estos objetos por cada aspecto listado arriba, en el mismo orden, EXACTAMENTE con los mismos
+    // valores de punto_a/aspecto/punto_b que se te dieron (no los traduzcas ni cambies el formato)
+  ],
+  "plan_de_accion": {{
+    "potencia": ["2-3 fortalezas concretas de esta carta que la persona deberia potenciar activamente, frases breves de 3-8 palabras"],
+    "observa": ["2-3 patrones que la persona deberia observar con mas consciencia, frases breves"],
+    "evita": ["2-3 comportamientos o tendencias que conviene evitar segun esta carta, frases breves"],
+    "empieza": ["2-3 acciones concretas y accionables que la persona podria empezar a partir de esta lectura, frases breves"]
+  }},
+  "brujula": {{
+    "aprendizajes": ["exactamente 5 aprendizajes clave que esta carta ofrece, cada uno una frase breve y memorable"],
+    "mantra": "una frase corta tipo mantra personal (menos de 15 palabras), memorable y accionable, que la persona pueda repetirse",
+    "frase_final": "frase de cierre potente que sintetiza el espiritu de la carta (40-250 caracteres), distinta en angulo y palabras a cualquier frase que ya se haya usado en otras partes del reporte"
+  }}
+}}""")
+
+    return "\n".join(lineas)
+
+
+async def interpretar_areas_de_vida(calculo: dict) -> dict:
+    """
+    Genera la segunda parte del reporte premium: vocacion, dinero, amor,
+    herida y don (Quiron), interpretacion de los aspectos mas relevantes,
+    plan de accion y brujula personal. Llamada independiente a Claude,
+    separada de interpretar_carta_completa para no sobrecargar una sola
+    respuesta con demasiadas secciones.
+    """
+    prompt_usuario = _construir_prompt_areas_de_vida(calculo)
+
+    respuesta = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=6000,
+        system=SYSTEM_PROMPT_AREAS_DE_VIDA,
+        messages=[{"role": "user", "content": prompt_usuario}],
+    )
+
+    texto_crudo = respuesta.content[0].text.strip()
+    texto_limpio = _limpiar_json_markdown(texto_crudo)
+
+    try:
+        datos_json = json.loads(texto_limpio)
+        interpretacion_validada = InterpretacionAreasDeVida(**datos_json)
+        return interpretacion_validada.model_dump()
     except (json.JSONDecodeError, ValidationError) as e:
         return {
             "_validation_error": str(e),

@@ -13,6 +13,7 @@ from app.services.interpretation_service import interpretar_carta_completa
 from app.services.resumen_deterministico_service import generar_resumen_deterministico
 from app.services.aspectos_service import calcular_todos_los_aspectos
 from app.core.admin_auth import verificar_admin_secret
+from pydantic import BaseModel
 
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -304,6 +305,12 @@ def aprobar_envio(carta_id: int, db: Session = Depends(get_db)):
     if carta is None:
         raise HTTPException(status_code=404, detail="Carta no encontrada.")
 
+    if carta.interpretacion_json is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Esta carta no tiene interpretacion completa. Usa /admin/generar-interpretacion primero.",
+        )
+
     if carta.enviado:
         return {
             "status": "ya_aprobada",
@@ -378,6 +385,40 @@ def test_aspectos(datos: DatosNacimiento):
     aspectos = calcular_todos_los_aspectos(puntos)
 
     return {"total_aspectos": len(aspectos), "aspectos": aspectos}
+
+class ConversionAPremium(BaseModel):
+    nombre_reporte: str | None = None
+    email: str | None = None
+
+
+@router.post("/admin/generar-interpretacion/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+async def generar_interpretacion_admin(
+    carta_id: int, datos: ConversionAPremium, db: Session = Depends(get_db)
+):
+    """
+    Genera la interpretacion completa via IA para una carta que ya existe
+    (tipicamente solo con resumen gratuito), reutilizando el calculo_json
+    ya guardado (sin recalcular Swiss Ephemeris). Opcionalmente completa
+    nombre_reporte/email si la carta viene del flujo gratis (que no los
+    captura) y nunca paso por /carta-natal/compra.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    if datos.nombre_reporte and datos.email:
+        carta = actualizar_datos_compra(db, carta, datos.nombre_reporte, datos.email)
+
+    calculo, _, interpretacion = deserializar_carta(carta)
+
+    if interpretacion is not None:
+        return {"status": "ya_existia", "mensaje": "Esta carta ya tenia interpretacion generada."}
+
+    interpretacion = await interpretar_carta_completa(calculo)
+    actualizar_con_interpretacion(db, carta, interpretacion)
+
+    return {"status": "generada", "mensaje": "Interpretacion generada correctamente."}
 
 
 @router.post("/test-dignidades-elementos")

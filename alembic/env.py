@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.core.database import Base
+from app.core.database import Base, DATABASE_URL
 from app.models import db_models  # registra CartaNatalGuardada en Base.metadata
 
 from logging.config import fileConfig
@@ -15,6 +15,12 @@ from alembic import context
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Sobreescribe la URL del .ini con la misma variable de entorno DATABASE_URL
+# que usa la aplicacion real (app/core/database.py). Sin esto, Alembic usaria
+# el valor fijo de alembic.ini (sqlite:///./astrea.db), que en produccion
+# apunta a un archivo distinto al volumen persistente real (/data/astrea.db).
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

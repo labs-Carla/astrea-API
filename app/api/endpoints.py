@@ -25,6 +25,8 @@ from app.services.persistence_service import (
     actualizar_datos_compra,
     listar_pendientes_de_aprobacion,
     obtener_carta_por_id,
+    aprobar_y_generar_token,
+    buscar_carta_por_token,
     deserializar_carta,
 )
 
@@ -288,6 +290,58 @@ def ver_detalle_carta(carta_id: int, db: Session = Depends(get_db)):
         "calculo": calculo,
         "interpretacion": interpretacion,
     }
+
+@router.post("/admin/aprobar/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+def aprobar_envio(carta_id: int, db: Session = Depends(get_db)):
+    """
+    Aprueba manualmente una carta revisada: genera el token de acceso y la
+    marca como enviada. Por ahora NO envia el correo automaticamente (Gmail
+    SMTP aun no esta configurado) — devuelve el link para que el admin lo
+    envie manualmente al cliente.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    if carta.enviado:
+        return {
+            "status": "ya_aprobada",
+            "link": f"https://astrea-informe-react.vercel.app/r/{carta.token}",
+        }
+
+    carta = aprobar_y_generar_token(db, carta)
+
+    return {
+        "status": "aprobada",
+        "link": f"https://astrea-informe-react.vercel.app/r/{carta.token}",
+    }
+
+@router.get("/carta-natal/token/{token}")
+def obtener_carta_por_token(token: str, db: Session = Depends(get_db)):
+    """
+    Endpoint publico (sin login) que devuelve el JSON completo del reporte
+    a partir de un token de acceso valido. Es el equivalente a /carta-natal/data
+    pero identificando la carta por token en vez de fecha/ciudad/pais.
+    """
+    carta = buscar_carta_por_token(db, token)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Link invalido o expirado.")
+
+    calculo, _, interpretacion = deserializar_carta(carta)
+
+    if interpretacion is None:
+        raise HTTPException(status_code=409, detail="Esta lectura aun no esta lista.")
+
+    metadata = {
+        "nombre": carta.nombre_reporte,
+        "fecha_hora_local": carta.fecha_hora_local.isoformat(),
+        "ciudad": None,
+        "pais": None,
+    }
+
+    return construir_contexto(metadata, calculo, interpretacion)
 
 
 @router.post("/test-interpretacion-completa")

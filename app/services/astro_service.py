@@ -122,7 +122,9 @@ def determinar_casa_natal(grado_absoluto: float, casas_natales: dict) -> int:
     Determina en que casa NATAL cae un grado absoluto (tipicamente la
     posicion de un planeta en transito), comparando contra las cuspides
     ya calculadas de la carta natal. casas_natales es el dict {numero: {...}}
-    que ya devuelve calcular_casas().
+    que ya devuelve calcular_casas() — pero si viene de JSON deserializado
+    (calculo_json), las claves numericas llegan como strings, no int, por
+    eso se indexa siempre con str().
 
     Recorre las 12 casas en orden y verifica si el grado cae en el arco
     entre la cuspide de esa casa y la cuspide de la siguiente (manejando
@@ -131,16 +133,15 @@ def determinar_casa_natal(grado_absoluto: float, casas_natales: dict) -> int:
     grado_absoluto = grado_absoluto % 360
 
     for numero_casa in range(1, 13):
-        cuspide_actual = casas_natales[numero_casa]["longitud_absoluta"]
+        cuspide_actual = casas_natales[str(numero_casa)]["longitud_absoluta"]
         siguiente_numero = numero_casa + 1 if numero_casa < 12 else 1
-        cuspide_siguiente = casas_natales[siguiente_numero]["longitud_absoluta"]
+        cuspide_siguiente = casas_natales[str(siguiente_numero)]["longitud_absoluta"]
 
         if cuspide_actual < cuspide_siguiente:
             if cuspide_actual <= grado_absoluto < cuspide_siguiente:
                 return numero_casa
         else:
-            # El arco cruza 0°/360° (ej. cuspide en 350°, siguiente en 20°)
             if grado_absoluto >= cuspide_actual or grado_absoluto < cuspide_siguiente:
                 return numero_casa
 
-    return 1  # fallback, no deberia llegar aqui si las 12 cuspides estan bien formadas
+    return 1

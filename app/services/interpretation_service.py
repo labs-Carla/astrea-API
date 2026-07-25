@@ -31,7 +31,7 @@ Reglas estrictas que debes seguir siempre:
 """
 
 
-def _construir_prompt_usuario(calculo: dict) -> str:
+def _construir_prompt_usuario(calculo: dict, genero: str | None = None) -> str:
     planetas = calculo["planetas"]
     puntos_angulares = calculo["puntos_angulares"]
     aspectos = calculo.get("aspectos", [])
@@ -39,10 +39,17 @@ def _construir_prompt_usuario(calculo: dict) -> str:
     elementos = calculo.get("elementos_y_modalidades", {})
 
     lineas = ["Interpreta esta carta natal completa:\n"]
+
+    if genero == "femenino":
+        lineas.append("IMPORTANTE: la persona de esta carta es una mujer. Usa concordancia de genero femenino en TODA la interpretacion (adjetivos, participios, etc. — ej. 'analitica', 'reservada', 'la persona es luminosa'), nunca masculino.\n")
+    elif genero == "masculino":
+        lineas.append("IMPORTANTE: la persona de esta carta es un hombre. Usa concordancia de genero masculino en TODA la interpretacion (adjetivos, participios, etc. — ej. 'analitico', 'reservado', 'la persona es luminoso'), nunca femenino.\n")
+    else:
+        lineas.append("IMPORTANTE: no se especifico el genero de la persona. Usa lenguaje neutro donde sea posible (ej. 'esta persona es luminosa y fuerte' evitando adjetivos marcados de genero cuando puedas, o formulaciones que no requieran concordancia explicita).\n")
+
     lineas.append("--- Puntos Angulares ---")
     for nombre, datos in puntos_angulares.items():
         lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°")
-
     lineas.append("\n--- Planetas y Puntos ---")
     for nombre, datos in planetas.items():
         retro = " (retrógrado)" if datos["retrogrado"] else ""
@@ -135,14 +142,14 @@ def _limpiar_json_markdown(texto: str) -> str:
         texto = "\n".join(lineas)
     return texto.strip()
 
-
-async def interpretar_carta_completa(calculo: dict) -> dict:
+async def interpretar_carta_completa(calculo: dict, genero: str | None = None) -> dict:
     """
     Genera la interpretación narrativa completa de la carta natal usando Claude,
     en una sola llamada para permitir que el texto teja conexiones entre puntos.
+    genero (opcional) ajusta la concordancia de genero en espanol del texto generado.
     Retorna un dict validado, o un fallback con _validation_error si la respuesta no cumple el esquema.
     """
-    prompt_usuario = _construir_prompt_usuario(calculo)
+    prompt_usuario = _construir_prompt_usuario(calculo, genero)
 
     respuesta = await client.messages.create(
         model="claude-sonnet-4-6",
@@ -267,7 +274,7 @@ def _filtrar_aspectos_principales(aspectos: list[dict], top_n: int = 10) -> list
     return sorted(aspectos, key=lambda a: a["orbe_usado"])[:top_n]
 
 
-def _construir_prompt_areas_de_vida(calculo: dict) -> str:
+def _construir_prompt_areas_de_vida(calculo: dict, genero: str | None = None) -> str:
     planetas = calculo["planetas"]
     puntos_angulares = calculo["puntos_angulares"]
     aspectos_principales = _filtrar_aspectos_principales(calculo.get("aspectos", []))
@@ -275,9 +282,14 @@ def _construir_prompt_areas_de_vida(calculo: dict) -> str:
 
     lineas = ["Escribe la segunda parte del reporte de esta carta natal (areas de vida practicas):\n"]
 
+    if genero == "femenino":
+        lineas.append("IMPORTANTE: la persona de esta carta es una mujer. Usa concordancia de genero femenino en TODA la interpretacion (adjetivos, participios, etc.), nunca masculino.\n")
+    elif genero == "masculino":
+        lineas.append("IMPORTANTE: la persona de esta carta es un hombre. Usa concordancia de genero masculino en TODA la interpretacion (adjetivos, participios, etc.), nunca femenino.\n")
+    else:
+        lineas.append("IMPORTANTE: no se especifico el genero de la persona. Usa lenguaje neutro donde sea posible.\n")
+
     lineas.append("--- Puntos Angulares ---")
-    for nombre, datos in puntos_angulares.items():
-        lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°")
 
     lineas.append("\n--- Planetas y Puntos ---")
     for nombre, datos in planetas.items():
@@ -325,16 +337,16 @@ Devuelve un JSON con exactamente esta forma:
 
     return "\n".join(lineas)
 
-
-async def interpretar_areas_de_vida(calculo: dict) -> dict:
+async def interpretar_areas_de_vida(calculo: dict, genero: str | None = None) -> dict:
     """
     Genera la segunda parte del reporte premium: vocacion, dinero, amor,
     herida y don (Quiron), interpretacion de los aspectos mas relevantes,
     plan de accion y brujula personal. Llamada independiente a Claude,
     separada de interpretar_carta_completa para no sobrecargar una sola
-    respuesta con demasiadas secciones.
+    respuesta con demasiadas secciones. genero (opcional) ajusta la
+    concordancia de genero en espanol del texto generado.
     """
-    prompt_usuario = _construir_prompt_areas_de_vida(calculo)
+    prompt_usuario = _construir_prompt_areas_de_vida(calculo, genero)
 
     respuesta = await client.messages.create(
         model="claude-sonnet-4-6",

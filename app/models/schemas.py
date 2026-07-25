@@ -103,13 +103,12 @@ class InterpretacionResumen(BaseModel):
         description="Texto narrativo de 400-600 palabras que sintetiza el Big Three (Sol/Luna/Ascendente) "
                      "y 1-2 patrones destacados de la carta, como teaser del reporte completo"
     )
-
+    
 class AspectoInterpretado(BaseModel):
     punto_a: str = Field(..., description="Nombre del primer punto involucrado, ej. 'Sol'")
     aspecto: str = Field(..., description="Tipo de aspecto, ej. 'Trigono'")
     punto_b: str = Field(..., description="Nombre del segundo punto involucrado, ej. 'Luna'")
-    interpretacion: str = Field(..., min_length=80, max_length=500, description="Interpretacion breve de que significa este aspecto especifico en la vida de la persona")
-
+    interpretacion: str = Field(..., min_length=80, max_length=900, description="Interpretacion breve de que significa este aspecto especifico en la vida de la persona")
 
 class PlanDeAccion(BaseModel):
     potencia: list[str] = Field(..., min_length=2, max_length=3, description="2-3 fortalezas concretas a potenciar, frases breves")

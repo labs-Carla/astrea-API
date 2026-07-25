@@ -103,3 +103,32 @@ class InterpretacionResumen(BaseModel):
         description="Texto narrativo de 400-600 palabras que sintetiza el Big Three (Sol/Luna/Ascendente) "
                      "y 1-2 patrones destacados de la carta, como teaser del reporte completo"
     )
+
+class AspectoInterpretado(BaseModel):
+    punto_a: str = Field(..., description="Nombre del primer punto involucrado, ej. 'Sol'")
+    aspecto: str = Field(..., description="Tipo de aspecto, ej. 'Trigono'")
+    punto_b: str = Field(..., description="Nombre del segundo punto involucrado, ej. 'Luna'")
+    interpretacion: str = Field(..., min_length=80, max_length=500, description="Interpretacion breve de que significa este aspecto especifico en la vida de la persona")
+
+
+class PlanDeAccion(BaseModel):
+    potencia: list[str] = Field(..., min_length=2, max_length=3, description="2-3 fortalezas concretas a potenciar, frases breves")
+    observa: list[str] = Field(..., min_length=2, max_length=3, description="2-3 patrones a observar con consciencia, frases breves")
+    evita: list[str] = Field(..., min_length=2, max_length=3, description="2-3 comportamientos o tendencias a evitar, frases breves")
+    empieza: list[str] = Field(..., min_length=2, max_length=3, description="2-3 acciones concretas para empezar, frases breves")
+
+
+class BrujulaPersonal(BaseModel):
+    aprendizajes: list[str] = Field(..., min_length=5, max_length=5, description="Los 5 aprendizajes mas importantes que esta carta ofrece")
+    mantra: str = Field(..., min_length=10, max_length=120, description="Una frase corta tipo mantra personal, memorable y accionable")
+    frase_final: str = Field(..., min_length=40, max_length=250, description="Frase de cierre potente que sintetiza el espiritu de la carta, distinta a la frase_de_cierre del capitulo de sintesis")
+
+
+class InterpretacionAreasDeVida(BaseModel):
+    vocacion: str = Field(..., min_length=150, max_length=1200, description="Forma de trabajar, liderazgo, profesiones afines, donde puede destacar y que puede frenarle profesionalmente")
+    dinero: str = Field(..., min_length=150, max_length=1200, description="Relacion con el dinero, como genera recursos, bloqueos, oportunidades y estrategias de crecimiento")
+    amor: str = Field(..., min_length=150, max_length=1200, description="Como ama, que necesita, patrones relacionales, compatibilidad emocional y aprendizajes afectivos")
+    herida_y_don: str = Field(..., min_length=150, max_length=1200, description="Interpretacion de Quiron enfocada en la herida, como aparece en la vida, como sanarla, y el don/regalo que hay detras de ella")
+    aspectos_interpretados: list[AspectoInterpretado] = Field(..., description="Interpretacion de cada uno de los aspectos mas relevantes recibidos como input")
+    plan_de_accion: PlanDeAccion
+    brujula: BrujulaPersonal

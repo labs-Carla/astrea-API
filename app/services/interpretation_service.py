@@ -3,7 +3,7 @@ from anthropic import AsyncAnthropic
 from pydantic import ValidationError
 from app.core.config import settings
 from app.models.schemas import InterpretacionCompleta, InterpretacionResumen, InterpretacionAreasDeVida, InterpretacionTransitos
-
+from app.services.regentes_service import calcular_regentes_de_casas
 
 
 client = AsyncAnthropic(api_key=settings.anthropic_api_key)
@@ -265,6 +265,11 @@ Reglas estrictas que debes seguir siempre:
 - Usa español latinoamericano neutro y cotidiano. Evita palabras rebuscadas, arcaicas o de registro muy
   literario/formal — prefiere el equivalente natural y directo que usaría alguien hablando en la vida diaria.
 - Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes o después, ni bloques de markdown.
+- Si una casa relevante para un area de vida (Dinero: Casa 2/8, Amor: Casa 5/7, Vocacion: Casa 10) no tiene
+  planetas propios en la carta, NUNCA digas que "faltan datos" o que "no hay indicadores" — en su lugar,
+  usa la informacion del regente de esa casa (que se te proporciona explicitamente) y su ubicacion en la
+  carta para interpretar esa area con la misma profundidad que si tuviera planetas propios. Esta es la
+  tecnica astrologica estandar para casas vacias.
 """
 
 
@@ -283,17 +288,20 @@ def _construir_prompt_areas_de_vida(calculo: dict, genero: str | None = None) ->
     puntos_angulares = calculo["puntos_angulares"]
     aspectos_principales = _filtrar_aspectos_principales(calculo.get("aspectos", []))
     quiron = planetas.get("Quiron")
+    regentes = calcular_regentes_de_casas(calculo)
 
     lineas = ["Escribe la segunda parte del reporte de esta carta natal (areas de vida practicas):\n"]
 
     if genero == "femenino":
-        lineas.append("Genero de la persona: femenino. Ajusta la concordancia gramatical de adjetivos y participios a femenino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente — el mismo estilo narrativo natural que usarias si no conocieras el genero, solo que con las terminaciones correctas.\n")
+        lineas.append("Genero de la persona: femenino. Ajusta la concordancia gramatical de adjetivos y participios a femenino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente.\n")
     elif genero == "masculino":
-        lineas.append("Genero de la persona: masculino. Ajusta la concordancia gramatical de adjetivos y participios a masculino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente — el mismo estilo narrativo natural que usarias si no conocieras el genero, solo que con las terminaciones correctas.\n")
+        lineas.append("Genero de la persona: masculino. Ajusta la concordancia gramatical de adjetivos y participios a masculino en toda la interpretacion. Escribe en tercera persona de forma fluida, dejando que la concordancia gramatical haga el trabajo silenciosamente.\n")
     else:
         lineas.append("IMPORTANTE: no se especifico el genero de la persona. Usa lenguaje neutro donde sea posible.\n")
 
     lineas.append("--- Puntos Angulares ---")
+    for nombre, datos in puntos_angulares.items():
+        lineas.append(f"{nombre}: {datos['signo']} {datos['grado_en_signo']:.2f}°")
 
     lineas.append("\n--- Planetas y Puntos ---")
     for nombre, datos in planetas.items():
@@ -303,6 +311,17 @@ def _construir_prompt_areas_de_vida(calculo: dict, genero: str | None = None) ->
     if quiron:
         lineas.append(f"\n--- Quiron (para Herida y Don) ---")
         lineas.append(f"Quiron: {quiron['signo']} {quiron['grado_en_signo']:.2f}°, Casa {quiron['casa']}")
+
+    lineas.append("\n--- Regentes de Casas Clave (para interpretar aunque la casa este vacia de planetas) ---")
+    casas_relevantes = {2: "Dinero", 5: "Amor/creatividad", 7: "Amor/relaciones", 8: "Dinero compartido/transformacion", 10: "Vocacion/carrera"}
+    for numero_casa, area in casas_relevantes.items():
+        info = regentes[numero_casa]
+        ub = info["ubicacion_regente"]
+        retro_txt = " (retrógrado)" if ub["retrogrado"] else ""
+        lineas.append(
+            f"Casa {numero_casa} ({area}): cúspide en {info['signo_cuspide']}, regida por {info['regente']}, "
+            f"que está ubicado en {ub['signo']} {ub['grado_en_signo']:.2f}°, Casa {ub['casa']}{retro_txt}"
+        )
 
     lineas.append("\n--- Aspectos principales a interpretar individualmente ---")
     for asp in aspectos_principales:

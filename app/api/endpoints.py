@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from app.services.report_service import generar_html_reporte, construir_contexto
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
-from app.services.interpretation_service import interpretar_carta_completa
+from app.services.interpretation_service import interpretar_carta_completa, interpretar_areas_de_vida
 from app.services.resumen_deterministico_service import generar_resumen_deterministico
 from app.services.aspectos_service import calcular_todos_los_aspectos
 from app.core.admin_auth import verificar_admin_secret
@@ -28,6 +28,9 @@ from app.services.persistence_service import (
     obtener_carta_por_id,
     aprobar_y_generar_token,
     buscar_carta_por_token,
+    actualizar_genero,
+    guardar_areas_de_vida,
+    obtener_areas_de_vida,
     deserializar_carta,
 )
 
@@ -433,5 +436,37 @@ def test_dignidades_elementos(datos: DatosNacimiento):
     elementos = calcular_elementos_y_modalidades(posiciones)
 
     return {"dignidades": dignidades, "elementos_y_modalidades": elementos}
+
+class GenerarAreasDeVidaRequest(BaseModel):
+    genero: str | None = None
+
+
+@router.post("/admin/generar-areas-de-vida/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+async def generar_areas_de_vida_admin(
+    carta_id: int, datos: GenerarAreasDeVidaRequest, db: Session = Depends(get_db)
+):
+    """
+    Genera la segunda llamada a Claude (vocacion, dinero, amor, herida/don,
+    aspectos interpretados, plan de accion, brujula) para una carta que ya
+    tiene el calculo_json guardado. Opcionalmente actualiza el genero de la
+    carta antes de generar, para ajustar la concordancia en espanol.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    if datos.genero:
+        carta = actualizar_genero(db, carta, datos.genero)
+
+    areas_existentes = obtener_areas_de_vida(carta)
+    if areas_existentes is not None and "_validation_error" not in areas_existentes:
+        return {"status": "ya_existia", "mensaje": "Esta carta ya tenia areas de vida generadas."}
+
+    calculo, _, _ = deserializar_carta(carta)
+    areas_de_vida = await interpretar_areas_de_vida(calculo, carta.genero)
+    guardar_areas_de_vida(db, carta, areas_de_vida)
+
+    return {"status": "generada", "mensaje": "Areas de vida generadas correctamente."}
 
     

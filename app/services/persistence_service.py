@@ -1,5 +1,6 @@
 import json
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.db_models import CartaNatalGuardada
 
@@ -55,10 +56,14 @@ def guardar_carta_completa(
     longitud: float,
     calculo: dict,
     interpretacion: dict,
+    nombre_reporte: str | None = None,
+    email: str | None = None,
 ) -> CartaNatalGuardada:
     """
     Guarda una carta nueva generada directamente en premium (sin haber pasado
     antes por el flujo gratuito): calculo + interpretacion, sin resumen_json.
+    nombre_reporte y email se llenan cuando viene del flujo de compra
+    (gracias.html); quedan None si es una prueba interna o el flujo gratuito.
     """
     nueva_carta = CartaNatalGuardada(
         fecha_hora_local=fecha_hora_local,
@@ -67,6 +72,8 @@ def guardar_carta_completa(
         calculo_json=json.dumps(calculo),
         interpretacion_json=json.dumps(interpretacion),
         resumen_json=None,
+        nombre_reporte=nombre_reporte,
+        email=email,
     )
     db.add(nueva_carta)
     db.commit()
@@ -88,6 +95,44 @@ def actualizar_con_interpretacion(
     return carta
 
 
+def actualizar_datos_compra(
+    db: Session, carta: CartaNatalGuardada, nombre_reporte: str, email: str
+) -> CartaNatalGuardada:
+    """
+    Actualiza una carta ya existente (típicamente generada antes por el flujo
+    gratuito) con los datos de la compra premium: nombre_reporte y email,
+    necesarios para el envío posterior del link de acceso.
+    """
+    carta.nombre_reporte = nombre_reporte
+    carta.email = email
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+def listar_pendientes_de_aprobacion(db: Session) -> list[CartaNatalGuardada]:
+    """
+    Lista las cartas que vienen del flujo de compra (tienen email) y aun no
+    han sido aprobadas/enviadas al cliente. Usado por el panel de admin.
+    """
+    return (
+        db.query(CartaNatalGuardada)
+        .filter(
+            CartaNatalGuardada.email.isnot(None),
+            CartaNatalGuardada.enviado.is_(False),
+        )
+        .order_by(CartaNatalGuardada.fecha_generacion.desc())
+        .all()
+    )
+
+
+def obtener_carta_por_id(db: Session, carta_id: int) -> CartaNatalGuardada | None:
+    """
+    Busca una carta por su id (usado por el panel de admin para ver el
+    detalle antes de aprobar el envio).
+    """
+    return db.query(CartaNatalGuardada).filter(CartaNatalGuardada.id == carta_id).first()
+
+
 def deserializar_carta(carta: CartaNatalGuardada) -> tuple[dict, dict | None, dict | None]:
     """
     Convierte los campos JSON guardados de vuelta a dicts de Python.
@@ -98,3 +143,23 @@ def deserializar_carta(carta: CartaNatalGuardada) -> tuple[dict, dict | None, di
     resumen = json.loads(carta.resumen_json) if carta.resumen_json else None
     interpretacion = json.loads(carta.interpretacion_json) if carta.interpretacion_json else None
     return calculo, resumen, interpretacion
+
+def aprobar_y_generar_token(db: Session, carta: CartaNatalGuardada) -> CartaNatalGuardada:
+    """
+    Genera un token opaco unico para acceso sin login (tipo Notion/Loom),
+    lo asigna a la carta, y marca enviado=True junto con la fecha de envio.
+    """
+    carta.token = secrets.token_urlsafe(24)
+    carta.enviado = True
+    carta.fecha_envio = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+
+def buscar_carta_por_token(db: Session, token: str) -> CartaNatalGuardada | None:
+    """
+    Busca una carta por su token de acceso publico (usado por el endpoint
+    que consume el cliente final via /r/{token}).
+    """
+    return db.query(CartaNatalGuardada).filter(CartaNatalGuardada.token == token).first()

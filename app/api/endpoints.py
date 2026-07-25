@@ -2,18 +2,17 @@ import json
 from fastapi import Request
 from app.core.limiter import limiter
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import DatosNacimiento
+from app.models.schemas import DatosNacimiento, DatosCompra
 from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
 from app.services.astro_service import calcular_casas, calcular_posiciones_planetarias
 from fastapi.responses import HTMLResponse
 from app.services.report_service import generar_html_reporte, construir_contexto
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
-
 from app.services.interpretation_service import interpretar_carta_completa
 from app.services.resumen_deterministico_service import generar_resumen_deterministico
-
 from app.services.aspectos_service import calcular_todos_los_aspectos
+from app.core.admin_auth import verificar_admin_secret
 
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -23,11 +22,17 @@ from app.services.persistence_service import (
     guardar_resumen,
     guardar_carta_completa,
     actualizar_con_interpretacion,
+    actualizar_datos_compra,
+    listar_pendientes_de_aprobacion,
+    obtener_carta_por_id,
+    aprobar_y_generar_token,
+    buscar_carta_por_token,
     deserializar_carta,
 )
 
 from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.geocoding_service import geocodificar_ciudad
+
 
 
 router = APIRouter()
@@ -203,6 +208,140 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/carta-natal/compra")
+async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
+    """
+    Recibe los datos enviados desde gracias.html tras una compra en Hotmart.
+    Dispara el calculo astronomico y la interpretacion completa via IA (si no
+    existian ya), y guarda nombre_reporte + email para revision manual antes
+    de aprobar el envio del link de acceso al cliente.
+    """
+    try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
+
+        if carta_existente is not None:
+            calculo, _, interpretacion = deserializar_carta(carta_existente)
+
+            if interpretacion is None:
+                interpretacion = await interpretar_carta_completa(calculo)
+                carta_existente = actualizar_con_interpretacion(db, carta_existente, interpretacion)
+
+            carta_existente = actualizar_datos_compra(db, carta_existente, datos.nombre, datos.email)
+        else:
+            resultado = _calcular_todo(datos, latitud, longitud)
+            calculo = resultado["calculo"]
+            interpretacion = await interpretar_carta_completa(calculo)
+            guardar_carta_completa(
+                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion,
+                nombre_reporte=datos.nombre, email=datos.email,
+            )
+
+        return {"status": "recibido", "mensaje": "Datos guardados, tu lectura esta siendo preparada."}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/admin/pendientes", dependencies=[Depends(verificar_admin_secret)])
+def listar_pendientes(db: Session = Depends(get_db)):
+    """
+    Devuelve la lista de cartas pendientes de revision/aprobacion: las que
+    vienen del flujo de compra (tienen email) y aun no se les envio el link.
+    """
+    pendientes = listar_pendientes_de_aprobacion(db)
+    return [
+        {
+            "id": carta.id,
+            "nombre_reporte": carta.nombre_reporte,
+            "email": carta.email,
+            "fecha_hora_local": carta.fecha_hora_local.isoformat(),
+            "fecha_generacion": carta.fecha_generacion.isoformat() if carta.fecha_generacion else None,
+        }
+        for carta in pendientes
+    ]
+
+@router.get("/admin/carta/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+def ver_detalle_carta(carta_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve el detalle completo de una carta (calculo + interpretacion) para
+    que el admin revise la calidad antes de aprobar el envio al cliente.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    calculo, _, interpretacion = deserializar_carta(carta)
+
+    if interpretacion is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Esta carta aun no tiene interpretacion completa generada.",
+        )
+
+    return {
+        "id": carta.id,
+        "nombre_reporte": carta.nombre_reporte,
+        "email": carta.email,
+        "enviado": carta.enviado,
+        "calculo": calculo,
+        "interpretacion": interpretacion,
+    }
+
+@router.post("/admin/aprobar/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+def aprobar_envio(carta_id: int, db: Session = Depends(get_db)):
+    """
+    Aprueba manualmente una carta revisada: genera el token de acceso y la
+    marca como enviada. Por ahora NO envia el correo automaticamente (Gmail
+    SMTP aun no esta configurado) — devuelve el link para que el admin lo
+    envie manualmente al cliente.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    if carta.enviado:
+        return {
+            "status": "ya_aprobada",
+            "link": f"https://astrea-informe-react.vercel.app/r/{carta.token}",
+        }
+
+    carta = aprobar_y_generar_token(db, carta)
+
+    return {
+        "status": "aprobada",
+        "link": f"https://astrea-informe-react.vercel.app/r/{carta.token}",
+    }
+
+@router.get("/carta-natal/token/{token}")
+def obtener_carta_por_token(token: str, db: Session = Depends(get_db)):
+    """
+    Endpoint publico (sin login) que devuelve el JSON completo del reporte
+    a partir de un token de acceso valido. Es el equivalente a /carta-natal/data
+    pero identificando la carta por token en vez de fecha/ciudad/pais.
+    """
+    carta = buscar_carta_por_token(db, token)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Link invalido o expirado.")
+
+    calculo, _, interpretacion = deserializar_carta(carta)
+
+    if interpretacion is None:
+        raise HTTPException(status_code=409, detail="Esta lectura aun no esta lista.")
+
+    metadata = {
+        "nombre": carta.nombre_reporte,
+        "fecha_hora_local": carta.fecha_hora_local.isoformat(),
+        "ciudad": None,
+        "pais": None,
+    }
+
+    return construir_contexto(metadata, calculo, interpretacion)
 
 
 @router.post("/test-interpretacion-completa")

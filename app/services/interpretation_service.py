@@ -111,9 +111,12 @@ Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, si
     momentos puede revelar significados nuevos. La frase final debe dejar una sensación de apertura e inspiración,
     como el cierre de un buen libro, invitando al lector a continuar escribiendo su propia historia. Tono cálido y
     esperanzador, sin frases grandilocuentes ni excesivamente espirituales.",
-  "frase_de_cierre": "una frase breve y memorable (máximo 200 caracteres) para la última página del reporte, que
+    "frase_de_cierre": "una frase breve y memorable (máximo 200 caracteres) para la última página del reporte, que
     sintetice el espíritu único de ESTA carta específica (no una frase genérica de horóscopo). Debe sentirse como
-    algo que el lector querría subrayar, fotografiar o recordar. Sin clichés espirituales ni frases grandilocuentes."
+    algo que el lector querría subrayar, fotografiar o recordar. Sin clichés espirituales ni frases grandilocuentes.
+    SIEMPRE en segunda persona (tú), hablandole directo al lector (ej. 'Tienes todo lo que necesitas...'), NUNCA en
+    tercera persona impersonal (evita 'tiene', 'necesita' sin sujeto).",
+
 }
 
 IMPORTANTE sobre "carta_en_una_mirada": esta sección es un resumen ejecutivo de dos minutos, no un adelanto
@@ -332,7 +335,7 @@ Devuelve un JSON con exactamente esta forma:
   "brujula": {{
     "aprendizajes": ["exactamente 5 aprendizajes clave que esta carta ofrece, cada uno una frase breve y memorable"],
     "mantra": "una frase corta tipo mantra personal (menos de 15 palabras), memorable y accionable, que la persona pueda repetirse",
-    "frase_final": "frase de cierre potente que sintetiza el espiritu de la carta (40-250 caracteres), distinta en angulo y palabras a cualquier frase que ya se haya usado en otras partes del reporte"
+    "frase_final": "frase de cierre potente que sintetiza el espiritu de la carta (40-250 caracteres), distinta en angulo y palabras a cualquier frase que ya se haya usado en otras partes del reporte. SIEMPRE en segunda persona (tú), hablandole directo al lector, NUNCA en tercera persona ni impersonal"
   }}
 }}""")
 

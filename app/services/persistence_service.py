@@ -1,5 +1,6 @@
 import json
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.db_models import CartaNatalGuardada
 
@@ -142,3 +143,23 @@ def deserializar_carta(carta: CartaNatalGuardada) -> tuple[dict, dict | None, di
     resumen = json.loads(carta.resumen_json) if carta.resumen_json else None
     interpretacion = json.loads(carta.interpretacion_json) if carta.interpretacion_json else None
     return calculo, resumen, interpretacion
+
+def aprobar_y_generar_token(db: Session, carta: CartaNatalGuardada) -> CartaNatalGuardada:
+    """
+    Genera un token opaco unico para acceso sin login (tipo Notion/Loom),
+    lo asigna a la carta, y marca enviado=True junto con la fecha de envio.
+    """
+    carta.token = secrets.token_urlsafe(24)
+    carta.enviado = True
+    carta.fecha_envio = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(carta)
+    return carta
+
+
+def buscar_carta_por_token(db: Session, token: str) -> CartaNatalGuardada | None:
+    """
+    Busca una carta por su token de acceso publico (usado por el endpoint
+    que consume el cliente final via /r/{token}).
+    """
+    return db.query(CartaNatalGuardada).filter(CartaNatalGuardada.token == token).first()

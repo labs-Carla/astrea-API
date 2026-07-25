@@ -124,10 +124,10 @@ class BrujulaPersonal(BaseModel):
 
 
 class InterpretacionAreasDeVida(BaseModel):
-    vocacion: str = Field(..., min_length=150, max_length=1200, description="Forma de trabajar, liderazgo, profesiones afines, donde puede destacar y que puede frenarle profesionalmente")
-    dinero: str = Field(..., min_length=150, max_length=1200, description="Relacion con el dinero, como genera recursos, bloqueos, oportunidades y estrategias de crecimiento")
-    amor: str = Field(..., min_length=150, max_length=1200, description="Como ama, que necesita, patrones relacionales, compatibilidad emocional y aprendizajes afectivos")
-    herida_y_don: str = Field(..., min_length=150, max_length=1200, description="Interpretacion de Quiron enfocada en la herida, como aparece en la vida, como sanarla, y el don/regalo que hay detras de ella")
+    vocacion: str = Field(..., min_length=150, max_length=1800, description="Forma de trabajar, liderazgo, profesiones afines, donde puede destacar y que puede frenarle profesionalmente")
+    dinero: str = Field(..., min_length=150, max_length=1800, description="Relacion con el dinero, como genera recursos, bloqueos, oportunidades y estrategias de crecimiento")
+    amor: str = Field(..., min_length=150, max_length=1800, description="Como ama, que necesita, patrones relacionales, compatibilidad emocional y aprendizajes afectivos")
+    herida_y_don: str = Field(..., min_length=150, max_length=1800, description="Interpretacion de Quiron enfocada en la herida, como aparece en la vida, como sanarla, y el don/regalo que hay detras de ella")
     aspectos_interpretados: list[AspectoInterpretado] = Field(..., description="Interpretacion de cada uno de los aspectos mas relevantes recibidos como input")
     plan_de_accion: PlanDeAccion
     brujula: BrujulaPersonal

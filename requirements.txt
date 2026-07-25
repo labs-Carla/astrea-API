@@ -12,3 +12,4 @@ geopy
 alembic==1.18.5
 python-dotenv
 slowapi
+email-validator==2.3.0

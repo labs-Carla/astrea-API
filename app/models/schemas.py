@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 
 
+from pydantic import BaseModel, Field, field_validator, EmailStr
+from datetime import datetime
+
+
 class DatosNacimiento(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=150, description="...")
     fecha_hora_local: datetime = Field(..., description="...")
@@ -21,6 +25,15 @@ class DatosNacimiento(BaseModel):
         if valor > hoy:
             raise ValueError("La fecha de nacimiento no puede estar en el futuro.")
         return valor
+
+
+class DatosCompra(DatosNacimiento):
+    """
+    Extiende DatosNacimiento agregando el email del comprador — usado en el
+    flujo post-compra (gracias.html) para poder enviarle luego el correo
+    con el link de acceso a su lectura, una vez se apruebe manualmente.
+    """
+    email: EmailStr = Field(..., description="Correo del comprador, para el envío posterior del link de acceso")
 
 
 class RespuestaCartaNatal(BaseModel):

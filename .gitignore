@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 astrea.db
 *.pdf
+astrea_prod_copy.db

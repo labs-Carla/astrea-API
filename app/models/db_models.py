@@ -31,12 +31,15 @@ class CartaNatalGuardada(Base):
     calculo_json = Column(Text, nullable=False)
     resumen_json = Column(Text, nullable=True)
     interpretacion_json = Column(Text, nullable=True)  # antes era nullable=False
+    areas_de_vida_json = Column(Text, nullable=True)  # segunda llamada a Claude: vocacion, dinero, amor, etc.
 
     # Datos de la compra premium (llenados cuando el cliente pasa por
     # formulario.html tras comprar en Hotmart). Nulos si la carta solo
     # pasó por el flujo gratuito.
     nombre_reporte = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
+
+    genero = Column(String, nullable=True)  # "femenino"/"masculino", para concordancia de genero en espanol en ambas llamadas a Claude
 
     # Token opaco único para acceso sin login (patrón tipo Notion/Loom).
     # Nulo hasta que se aprueba manualmente el envío.

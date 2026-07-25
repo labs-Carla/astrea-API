@@ -76,7 +76,7 @@ def _construir_prompt_usuario(calculo: dict, genero: str | None = None) -> str:
 Devuelve un JSON con exactamente esta forma (todas las claves en minúsculas, sin tildes en las claves):
 {
   "carta_en_una_mirada": {
-    "esencia": "3 a 4 conceptos de UNA SOLA PALABRA cada uno (adjetivos o sustantivos breves), separados por
+    "esencia": "EXACTAMENTE 3 conceptos de UNA SOLA PALABRA cada uno (adjetivos o sustantivos breves), separados por
       ' · ', que capturen el eje central de la carta en una frase-titular (ej. 'Analítica · Transformadora ·
       Sensible'). Nunca frases de 2+ palabras por concepto. Deben ser palabras distintas a las que usarás
       luego en el overview — es un titular, no un adelanto textual.",
@@ -283,9 +283,9 @@ def _construir_prompt_areas_de_vida(calculo: dict, genero: str | None = None) ->
     lineas = ["Escribe la segunda parte del reporte de esta carta natal (areas de vida practicas):\n"]
 
     if genero == "femenino":
-        lineas.append("IMPORTANTE: la persona de esta carta es una mujer. Usa concordancia de genero femenino en TODA la interpretacion (adjetivos, participios, etc.), nunca masculino.\n")
+        lineas.append("IMPORTANTE sobre genero: usa concordancia gramatical femenina en los adjetivos y participios que describen a la persona (ej. 'analitica', 'reservada'). NO uses frases como 'esta mujer' o abuses del pronombre 'ella' como muletilla — escribe con la misma fluidez natural que si no se supiera el genero, dejando que la concordancia gramatical haga el trabajo silenciosamente, tal como fluye una conversacion normal en espanol.\n")
     elif genero == "masculino":
-        lineas.append("IMPORTANTE: la persona de esta carta es un hombre. Usa concordancia de genero masculino en TODA la interpretacion (adjetivos, participios, etc.), nunca femenino.\n")
+        lineas.append("IMPORTANTE sobre genero: usa concordancia gramatical masculina en los adjetivos y participios que describen a la persona (ej. 'analitico', 'reservado'). NO uses frases como 'este hombre' o abuses del pronombre 'el' como muletilla — escribe con la misma fluidez natural que si no se supiera el genero, dejando que la concordancia gramatical haga el trabajo silenciosamente, tal como fluye una conversacion normal en espanol.\n")
     else:
         lineas.append("IMPORTANTE: no se especifico el genero de la persona. Usa lenguaje neutro donde sea posible.\n")
 

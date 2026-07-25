@@ -39,6 +39,8 @@ class CartaNatalGuardada(Base):
     nombre_reporte = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
 
+    genero = Column(String, nullable=True)  # "femenino"/"masculino", para concordancia de genero en espanol en ambas llamadas a Claude
+
     # Token opaco único para acceso sin login (patrón tipo Notion/Loom).
     # Nulo hasta que se aprueba manualmente el envío.
     token = Column(String, nullable=True, unique=True, index=True)

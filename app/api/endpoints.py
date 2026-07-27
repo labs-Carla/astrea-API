@@ -277,8 +277,9 @@ def listar_pendientes(db: Session = Depends(get_db)):
 @router.get("/admin/carta/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
 def ver_detalle_carta(carta_id: int, db: Session = Depends(get_db)):
     """
-    Devuelve el detalle completo de una carta (calculo + interpretacion) para
-    que el admin revise la calidad antes de aprobar el envio al cliente.
+    Devuelve el detalle completo de una carta (calculo + interpretacion +
+    areas_de_vida + transitos, si existen) para que el admin revise la
+    calidad antes de aprobar el envio al cliente.
     """
     carta = obtener_carta_por_id(db, carta_id)
 
@@ -298,8 +299,11 @@ def ver_detalle_carta(carta_id: int, db: Session = Depends(get_db)):
         "nombre_reporte": carta.nombre_reporte,
         "email": carta.email,
         "enviado": carta.enviado,
+        "genero": carta.genero,
         "calculo": calculo,
         "interpretacion": interpretacion,
+        "areas_de_vida": obtener_areas_de_vida(carta),
+        "transitos": obtener_transitos(carta),
     }
 
 @router.post("/admin/aprobar/{carta_id}", dependencies=[Depends(verificar_admin_secret)])

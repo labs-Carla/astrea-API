@@ -48,29 +48,27 @@ def guardar_resumen(
     db.refresh(nueva_carta)
     return nueva_carta
 
-
 def guardar_carta_completa(
     db: Session,
     fecha_hora_local: datetime,
     latitud: float,
     longitud: float,
     calculo: dict,
-    interpretacion: dict,
+    interpretacion: dict | None,
     nombre_reporte: str | None = None,
     email: str | None = None,
 ) -> CartaNatalGuardada:
     """
-    Guarda una carta nueva generada directamente en premium (sin haber pasado
-    antes por el flujo gratuito): calculo + interpretacion, sin resumen_json.
-    nombre_reporte y email se llenan cuando viene del flujo de compra
-    (gracias.html); quedan None si es una prueba interna o el flujo gratuito.
+    Guarda una carta nueva. Si interpretacion es None (ej. viene de
+    /carta-natal/compra sin IA todavia), queda pendiente para generarse
+    despues desde el panel de admin.
     """
     nueva_carta = CartaNatalGuardada(
         fecha_hora_local=fecha_hora_local,
         latitud=latitud,
         longitud=longitud,
         calculo_json=json.dumps(calculo),
-        interpretacion_json=json.dumps(interpretacion),
+        interpretacion_json=json.dumps(interpretacion) if interpretacion is not None else None,
         resumen_json=None,
         nombre_reporte=nombre_reporte,
         email=email,

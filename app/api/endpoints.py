@@ -224,9 +224,10 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
 async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
     """
     Recibe los datos enviados desde gracias.html tras una compra en Hotmart.
-    Dispara el calculo astronomico y la interpretacion completa via IA (si no
-    existian ya), y guarda nombre_reporte + email para revision manual antes
-    de aprobar el envio del link de acceso al cliente.
+    Calcula la carta astronomica (Swiss Ephemeris, sin IA) y guarda
+    nombre_reporte + email para que aparezca en el panel de admin. La
+    interpretacion via Claude se genera manualmente despues desde el panel,
+    no automaticamente aqui.
     """
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
@@ -234,19 +235,12 @@ async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
         carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
 
         if carta_existente is not None:
-            calculo, _, interpretacion = deserializar_carta(carta_existente)
-
-            if interpretacion is None:
-                interpretacion = await interpretar_carta_completa(calculo)
-                carta_existente = actualizar_con_interpretacion(db, carta_existente, interpretacion)
-
             carta_existente = actualizar_datos_compra(db, carta_existente, datos.nombre, datos.email)
         else:
             resultado = _calcular_todo(datos, latitud, longitud)
             calculo = resultado["calculo"]
-            interpretacion = await interpretar_carta_completa(calculo)
             guardar_carta_completa(
-                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion,
+                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion=None,
                 nombre_reporte=datos.nombre, email=datos.email,
             )
 

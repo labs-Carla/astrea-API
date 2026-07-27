@@ -82,6 +82,12 @@ def _calcular_todo(datos: DatosNacimiento, latitud: float, longitud: float) -> d
         },
     }
 
+def _iso_utc(valor):
+    """Serializa un datetime naive (guardado como UTC) a ISO string con
+    sufijo Z explicito, para que el frontend lo interprete correctamente
+    como UTC y no como hora local del navegador."""
+    return valor.isoformat() + "Z" if valor else None
+
 
 def _metadata_base(datos: DatosNacimiento, latitud: float, longitud: float, fecha_hora_utc: str) -> dict:
     return {
@@ -252,10 +258,6 @@ async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
 
 @router.get("/admin/pendientes", dependencies=[Depends(verificar_admin_secret)])
 def listar_pendientes(db: Session = Depends(get_db)):
-    """
-    Devuelve la lista de cartas pendientes de revision/aprobacion: las que
-    vienen del flujo de compra (tienen email) y aun no se les envio el link.
-    """
     pendientes = listar_pendientes_de_aprobacion(db)
     return [
         {
@@ -263,8 +265,8 @@ def listar_pendientes(db: Session = Depends(get_db)):
             "nombre_reporte": carta.nombre_reporte,
             "email": carta.email,
             "fecha_hora_local": carta.fecha_hora_local.isoformat(),
-            "fecha_generacion": carta.fecha_generacion.isoformat() if carta.fecha_generacion else None,
-            "fecha_solicitud_compra": carta.fecha_solicitud_compra.isoformat() if carta.fecha_solicitud_compra else None,
+            "fecha_generacion": _iso_utc(carta.fecha_generacion),
+            "fecha_solicitud_compra": _iso_utc(carta.fecha_solicitud_compra),
         }
         for carta in pendientes
     ]
@@ -520,10 +522,6 @@ async def generar_transitos_admin(
 
 @router.get("/admin/enviadas", dependencies=[Depends(verificar_admin_secret)])
 def listar_enviadas(db: Session = Depends(get_db)):
-    """
-    Devuelve las cartas ya aprobadas/enviadas (enviado=True), para que el
-    admin pueda revisar el link generado o el estado de entregas pasadas.
-    """
     from app.models.db_models import CartaNatalGuardada
 
     enviadas = (
@@ -539,7 +537,7 @@ def listar_enviadas(db: Session = Depends(get_db)):
             "nombre_reporte": carta.nombre_reporte,
             "email": carta.email,
             "fecha_hora_local": carta.fecha_hora_local.isoformat(),
-            "fecha_envio": carta.fecha_envio.isoformat() if carta.fecha_envio else None,
+            "fecha_envio": _iso_utc(carta.fecha_envio),
             "token": carta.token,
         }
         for carta in enviadas

@@ -264,6 +264,7 @@ def listar_pendientes(db: Session = Depends(get_db)):
             "email": carta.email,
             "fecha_hora_local": carta.fecha_hora_local.isoformat(),
             "fecha_generacion": carta.fecha_generacion.isoformat() if carta.fecha_generacion else None,
+            "fecha_solicitud_compra": carta.fecha_solicitud_compra.isoformat() if carta.fecha_solicitud_compra else None,
         }
         for carta in pendientes
     ]

@@ -328,14 +328,14 @@ def aprobar_envio(carta_id: int, db: Session = Depends(get_db)):
     if carta.enviado:
         return {
             "status": "ya_aprobada",
-            "link": f"https://astrea-informe-react.vercel.app/r/{carta.token}",
+            "link": f"https://astrea-charts.site/r/{carta.token}",
         }
 
     carta = aprobar_y_generar_token(db, carta)
 
     return {
         "status": "aprobada",
-        "link": f"https://astrea-informe-react.vercel.app/r/{carta.token}",
+        "link": f"https://astrea-charts.site/r/{carta.token}",
     }
 
 @router.get("/carta-natal/token/{token}")

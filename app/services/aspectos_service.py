@@ -94,3 +94,4 @@ def calcular_aspectos_transito_natal(puntos_transito: dict, puntos_natales: dict
                 })
 
     return aspectos_encontrados
+

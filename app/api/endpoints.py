@@ -522,3 +522,30 @@ async def generar_transitos_admin(
     guardar_transitos(db, carta, interpretacion_transitos)
 
     return {"status": "generada", "mensaje": "Transitos generados correctamente."}
+
+@router.get("/admin/enviadas", dependencies=[Depends(verificar_admin_secret)])
+def listar_enviadas(db: Session = Depends(get_db)):
+    """
+    Devuelve las cartas ya aprobadas/enviadas (enviado=True), para que el
+    admin pueda revisar el link generado o el estado de entregas pasadas.
+    """
+    from app.models.db_models import CartaNatalGuardada
+
+    enviadas = (
+        db.query(CartaNatalGuardada)
+        .filter(CartaNatalGuardada.enviado.is_(True))
+        .order_by(CartaNatalGuardada.fecha_envio.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": carta.id,
+            "nombre_reporte": carta.nombre_reporte,
+            "email": carta.email,
+            "fecha_hora_local": carta.fecha_hora_local.isoformat(),
+            "fecha_envio": carta.fecha_envio.isoformat() if carta.fecha_envio else None,
+            "token": carta.token,
+        }
+        for carta in enviadas
+    ]

@@ -39,6 +39,7 @@ class CartaNatalGuardada(Base):
     # pasó por el flujo gratuito.
     nombre_reporte = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
+    fecha_solicitud_compra = Column(DateTime, nullable=True)  # cuando se envio el formulario de gracias.html, distinto de fecha_generacion (calculo) y fecha_envio (aprobacion)
 
     genero = Column(String, nullable=True)  # "femenino"/"masculino", para concordancia de genero en espanol en ambas llamadas a Claude
 

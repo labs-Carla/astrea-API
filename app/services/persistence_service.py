@@ -61,7 +61,8 @@ def guardar_carta_completa(
     """
     Guarda una carta nueva. Si interpretacion es None (ej. viene de
     /carta-natal/compra sin IA todavia), queda pendiente para generarse
-    despues desde el panel de admin.
+    despues desde el panel de admin. Si viene con nombre_reporte/email
+    (flujo de compra), registra fecha_solicitud_compra automaticamente.
     """
     nueva_carta = CartaNatalGuardada(
         fecha_hora_local=fecha_hora_local,
@@ -72,6 +73,7 @@ def guardar_carta_completa(
         resumen_json=None,
         nombre_reporte=nombre_reporte,
         email=email,
+        fecha_solicitud_compra=datetime.now(timezone.utc) if (nombre_reporte and email) else None,
     )
     db.add(nueva_carta)
     db.commit()
@@ -99,10 +101,12 @@ def actualizar_datos_compra(
     """
     Actualiza una carta ya existente (típicamente generada antes por el flujo
     gratuito) con los datos de la compra premium: nombre_reporte y email,
-    necesarios para el envío posterior del link de acceso.
+    necesarios para el envío posterior del link de acceso. Registra tambien
+    fecha_solicitud_compra con el momento real de este envio.
     """
     carta.nombre_reporte = nombre_reporte
     carta.email = email
+    carta.fecha_solicitud_compra = datetime.now(timezone.utc)
     db.commit()
     db.refresh(carta)
     return carta

@@ -9,8 +9,8 @@ from fastapi.responses import HTMLResponse
 from app.services.report_service import generar_html_reporte, construir_contexto
 from fastapi.responses import Response
 from app.services.pdf_service import generar_pdf_desde_html
-from app.services.interpretation_service import interpretar_carta_completa, interpretar_areas_de_vida, interpretar_transitos
-from app.services.transitos_service import calcular_transitos_actuales
+from app.services.interpretation_service import interpretar_carta_completa, interpretar_areas_de_vida, interpretar_transitos,generar_horoscopos
+from app.services.transitos_service import calcular_transitos_actuales, calcular_transitos_por_signo
 from app.services.resumen_deterministico_service import generar_resumen_deterministico
 from app.services.aspectos_service import calcular_todos_los_aspectos
 from app.core.admin_auth import verificar_admin_secret
@@ -35,10 +35,14 @@ from app.services.persistence_service import (
     guardar_transitos,
     obtener_transitos,
     deserializar_carta,
+    guardar_horoscopo,
+    obtener_horoscopo_mas_reciente
 )
 
 from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.geocoding_service import geocodificar_ciudad
+from app.services.time_service import calcular_dia_juliano
+from datetime import datetime, timezone
 
 
 
@@ -542,3 +546,47 @@ def listar_enviadas(db: Session = Depends(get_db)):
         }
         for carta in enviadas
     ]
+
+@router.post("/admin/generar-horoscopos/{cadencia}", dependencies=[Depends(verificar_admin_secret)])
+async def generar_horoscopos_admin(cadencia: str, db: Session = Depends(get_db)):
+    """
+    Genera y guarda los horoscopos genericos (diario o semanal) para los
+    12 signos, basados en los transitos de hoy. cadencia debe ser 'diario'
+    o 'semanal'.
+    """
+    if cadencia not in ("diario", "semanal"):
+        raise HTTPException(status_code=400, detail="cadencia debe ser 'diario' o 'semanal'.")
+
+    ahora_utc = datetime.now(timezone.utc)
+    dia_juliano_hoy = calcular_dia_juliano(ahora_utc)
+
+    transitos_por_signo = calcular_transitos_por_signo(dia_juliano_hoy)
+    contenido = await generar_horoscopos(transitos_por_signo, cadencia)
+
+    if "_validation_error" in contenido:
+        raise HTTPException(status_code=502, detail=f"Error al generar: {contenido['_validation_error']}")
+
+    guardar_horoscopo(db, cadencia, ahora_utc, contenido)
+
+    return {"status": "generado", "cadencia": cadencia}
+
+
+@router.get("/horoscopos/{cadencia}")
+def obtener_horoscopos_publico(cadencia: str, db: Session = Depends(get_db)):
+    """
+    Endpoint publico (sin auth) que devuelve el horoscopo mas reciente de
+    la cadencia pedida. Consumido por el frontend publico de horoscopos.
+    """
+    if cadencia not in ("diario", "semanal"):
+        raise HTTPException(status_code=400, detail="cadencia debe ser 'diario' o 'semanal'.")
+
+    horoscopo = obtener_horoscopo_mas_reciente(db, cadencia)
+
+    if horoscopo is None:
+        raise HTTPException(status_code=404, detail="Aun no hay horoscopos generados para esta cadencia.")
+
+    return {
+        "cadencia": horoscopo.cadencia,
+        "fecha": horoscopo.fecha.isoformat() + "Z",
+        "contenido": json.loads(horoscopo.contenido_json),
+    }

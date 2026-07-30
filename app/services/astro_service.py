@@ -145,3 +145,15 @@ def determinar_casa_natal(grado_absoluto: float, casas_natales: dict) -> int:
                 return numero_casa
 
     return 1
+
+def calcular_casa_natural(signo_planeta: str, signo_persona: str) -> int:
+    """
+    Calcula en que casa "natural" (rueda generica, sin datos de nacimiento)
+    cae un planeta en transito, para el signo solar de una persona. Usado
+    para horoscopos genericos: Aries=Casa1, Tauro=Casa2, etc. Si Venus esta
+    en Cancer y la persona es Aries, Cancer es el 4to signo desde Aries,
+    entonces Venus "activa" su Casa 4 natural.
+    """
+    indice_planeta = SIGNOS.index(signo_planeta)
+    indice_persona = SIGNOS.index(signo_persona)
+    return ((indice_planeta - indice_persona) % 12) + 1

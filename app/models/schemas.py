@@ -144,3 +144,15 @@ class InterpretacionTransitos(BaseModel):
     retos: str = Field(..., min_length=80, max_length=900, description="Retos o tensiones del momento actual segun los transitos")
     consejo: str = Field(..., min_length=60, max_length=700, description="Consejo practico y accionable para navegar este momento")
     proximos_meses: ProximosMeses
+
+class HoroscopoSigno(BaseModel):
+    signo: str = Field(..., description="Nombre del signo, ej. 'Aries'")
+    texto: str = Field(..., min_length=80, max_length=1100, description="Texto del horoscopo para este signo")
+
+
+class HoroscoposDelDia(BaseModel):
+    horoscopos: list[HoroscopoSigno] = Field(..., min_length=12, max_length=12, description="Un horoscopo por cada uno de los 12 signos, en el mismo orden zodiacal (Aries primero)")
+
+
+class HoroscoposDeLaSemana(BaseModel):
+    horoscopos: list[HoroscopoSigno] = Field(..., min_length=12, max_length=12, description="Un horoscopo semanal por cada uno de los 12 signos, en el mismo orden zodiacal (Aries primero)")

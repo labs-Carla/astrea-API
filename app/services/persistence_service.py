@@ -3,6 +3,8 @@ import secrets
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.db_models import CartaNatalGuardada
+from app.models.db_models import HoroscopoGenerado
+
 
 
 def buscar_carta_existente(
@@ -211,3 +213,33 @@ def obtener_transitos(carta: CartaNatalGuardada) -> dict | None:
     Deserializa transitos_json de vuelta a dict.
     """
     return json.loads(carta.transitos_json) if carta.transitos_json else None
+
+def guardar_horoscopo(db: Session, cadencia: str, fecha: datetime, contenido: dict) -> HoroscopoGenerado:
+    """
+    Guarda un horoscopo generico generado (diario o semanal) para una fecha
+    especifica. No sobrescribe registros anteriores — cada generacion queda
+    como su propia fila, permitiendo ver el historial si se quiere.
+    """
+    nuevo = HoroscopoGenerado(
+        cadencia=cadencia,
+        fecha=fecha,
+        contenido_json=json.dumps(contenido),
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo
+
+
+def obtener_horoscopo_mas_reciente(db: Session, cadencia: str) -> HoroscopoGenerado | None:
+    """
+    Devuelve el horoscopo mas reciente de una cadencia dada (diario o
+    semanal), usado para servir el contenido ya generado sin regenerarlo
+    en cada visita.
+    """
+    return (
+        db.query(HoroscopoGenerado)
+        .filter(HoroscopoGenerado.cadencia == cadencia)
+        .order_by(HoroscopoGenerado.fecha.desc())
+        .first()
+    )

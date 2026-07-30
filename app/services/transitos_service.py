@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from app.services.time_service import calcular_dia_juliano
 from app.services.astro_service import calcular_posiciones_transito, determinar_casa_natal
 from app.services.aspectos_service import calcular_aspectos_transito_natal
+from app.core.config import SIGNOS
+from app.services.astro_service import calcular_casa_natural
 
 
 def calcular_transitos_actuales(calculo_natal: dict) -> dict:
@@ -47,3 +49,25 @@ def calcular_transitos_actuales(calculo_natal: dict) -> dict:
         "planetas_transito": posiciones_transito,
         "aspectos_transito": aspectos_transito,
     }
+
+def calcular_transitos_por_signo(dia_juliano: float) -> dict:
+    """
+    Calcula, para cada uno de los 12 signos del zodiaco, en que casa
+    "natural" (rueda generica, sin datos de nacimiento reales) cae cada
+    planeta en transito hoy. Usado para horoscopos genericos diarios/
+    semanales, a diferencia de calcular_transitos_actuales() que compara
+    contra una carta natal real especifica.
+    """
+    posiciones_transito = calcular_posiciones_transito(dia_juliano)
+
+    resultado = {}
+    for signo_persona in SIGNOS:
+        planetas_con_casa = {}
+        for nombre_planeta, datos in posiciones_transito.items():
+            planetas_con_casa[nombre_planeta] = {
+                **datos,
+                "casa_natural": calcular_casa_natural(datos["signo"], signo_persona),
+            }
+        resultado[signo_persona] = planetas_con_casa
+
+    return resultado

@@ -50,3 +50,17 @@ class CartaNatalGuardada(Base):
     fecha_envio = Column(DateTime, nullable=True)
 
     fecha_generacion = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class HoroscopoGenerado(Base):
+    """
+    Guarda los horoscopos genericos (no personalizados) generados diaria o
+    semanalmente para los 12 signos. Distinto de CartaNatalGuardada, que es
+    por cliente individual.
+    """
+    __tablename__ = "horoscopos_generados"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cadencia = Column(String, nullable=False, index=True)  # 'diario' o 'semanal'
+    fecha = Column(DateTime, nullable=False, index=True)  # dia (o inicio de semana) al que corresponde
+    contenido_json = Column(Text, nullable=False)  # el dict de HoroscoposDelDia/DeLaSemana serializado
+    fecha_generacion = Column(DateTime, default=lambda: datetime.now(timezone.utc))

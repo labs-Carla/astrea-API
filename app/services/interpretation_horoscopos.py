@@ -1,6 +1,6 @@
 from anthropic import AsyncAnthropic
 from app.models.schemas import HoroscoposDelDia, HoroscoposDeLaSemana
-from app.services.interpretation_common import _client_default, _parsear_respuesta
+from app.services.interpretation_common import _client_default, _parsear_respuesta, _log_uso_claude
 
 
 SYSTEM_PROMPT_HOROSCOPOS = """Eres un astrologo profesional experimentado, con un enfoque psicologico moderno.
@@ -67,5 +67,6 @@ async def generar_horoscopos(
         messages=[{"role": "user", "content": prompt_usuario}],
     )
 
+    _log_uso_claude(f"horoscopos_{cadencia}", respuesta)
     texto_crudo = respuesta.content[0].text.strip()
     return _parsear_respuesta(texto_crudo, schema)

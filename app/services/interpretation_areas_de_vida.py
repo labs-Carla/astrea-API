@@ -1,6 +1,6 @@
 from anthropic import AsyncAnthropic
 from app.models.schemas import InterpretacionAreasDeVida
-from app.services.interpretation_common import _client_default, _parsear_respuesta, _instruccion_genero
+from app.services.interpretation_common import _client_default, _parsear_respuesta, _instruccion_genero, _log_uso_claude
 from app.domain.regentes_service import calcular_regentes_de_casas
 
 
@@ -130,5 +130,6 @@ async def interpretar_areas_de_vida(
         messages=[{"role": "user", "content": prompt_usuario}],
     )
 
+    _log_uso_claude("areas_de_vida", respuesta)
     texto_crudo = respuesta.content[0].text.strip()
     return _parsear_respuesta(texto_crudo, InterpretacionAreasDeVida)

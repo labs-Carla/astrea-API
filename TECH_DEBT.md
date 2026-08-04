@@ -175,7 +175,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Depende de:** Fase 2 (mover código ya dividido por responsabilidad es mucho más simple que mover un god-file).
 
-### Fase 4 — Consolidación operativa — En progreso
+### Fase 4 — Consolidación operativa — Completa
 
 **Objetivo:** cerrar los hallazgos de infraestructura/operación que no son arquitectónicos pero sí necesarios para el "nivel profesional" mencionado en el objetivo del proyecto.
 
@@ -184,6 +184,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 - [x] Agregar usuario no-root al Dockerfile (#9).
 - [x] Correr la suite de tests (Fase 1) en el pipeline de CI ya existente (`.github/workflows/ci.yml`): nuevo job `unit-tests` corre `pytest`, además de los ya existentes `app-smoke-test` (que ahora corre `alembic upgrade head` antes del boot check, ver #7) y `docker-build`.
 - [x] Reemplazar el `print()` de debug en `astro_service.py` por logging real (#14).
+- [x] Logging estructurado central (`app/core/logging_config.py`, `setup_logging()` llamado desde `main.py`) y visibilidad de costo/uso de Claude (`interpretation_common._log_uso_claude`, logueado en las 5 llamadas). Estos dos últimos no tenían ítem numerado propio en este documento — estaban solo en el DoD de Horizonte 4 de `ROADMAP.md`.
 
 **Depende de:** nada estructuralmente, pero tiene más sentido una vez que hay tests (Fase 1) que un CI pueda correr.
 

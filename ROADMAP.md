@@ -135,7 +135,7 @@ Esto no es arbitrario: un sistema inseguro pone en riesgo el negocio antes que c
 
 ---
 
-## Horizonte 4 — Consolidación operativa y observabilidad
+## Horizonte 4 — Consolidación operativa y observabilidad — Completo
 
 **Prioridad que atiende:** Seguridad y Mantenibilidad, preparando el terreno para Escalabilidad.
 
@@ -150,12 +150,12 @@ Esto no es arbitrario: un sistema inseguro pone en riesgo el negocio antes que c
 **Criterios de entrada.** Ninguno estricto más allá de la suite de tests del Horizonte 1 — es transversal, no bloquea ni es bloqueado por los Horizontes 2 y 3.
 
 **Definition of Done.**
-- `main.py` deja de crear tablas automáticamente; el setup de cualquier entorno pasa siempre por `alembic upgrade head`.
-- Las dependencias en `requirements.txt` están pinneadas (o migradas a un lockfile).
-- El contenedor corre con un usuario no privilegiado.
-- Hay logging estructurado reemplazando los `print()` de debug.
-- Hay visibilidad (aunque sea básica) de cuánto cuesta en tokens/USD cada tipo de llamada a Claude.
-- Existe un pipeline de CI que corre la suite de tests en cada cambio propuesto.
+- [x] `main.py` deja de crear tablas automáticamente; el setup de cualquier entorno pasa siempre por `alembic upgrade head`.
+- [x] Las dependencias en `requirements.txt` están pinneadas (o migradas a un lockfile).
+- [x] El contenedor corre con un usuario no privilegiado.
+- [x] Hay logging estructurado reemplazando los `print()` de debug — `app/core/logging_config.py` (`setup_logging()`, llamado una vez desde `main.py`).
+- [x] Hay visibilidad (aunque sea básica) de cuánto cuesta en tokens/USD cada tipo de llamada a Claude — `interpretation_common._log_uso_claude`, logueado en cada una de las 5 llamadas.
+- [x] Existe un pipeline de CI que corre la suite de tests en cada cambio propuesto.
 
 **Riesgos.** Tratar este horizonte como "nice to have" indefinidamente por no bloquear features nuevas, postergándolo sin fecha. Mitigación: ejecutarlo en paralelo a los Horizontes 2-3 desde el principio, no como algo para "cuando haya tiempo".
 

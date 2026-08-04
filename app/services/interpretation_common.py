@@ -3,18 +3,55 @@ Piezas compartidas por los 5 casos de uso de interpretacion via Claude
 (interpretation_carta_completa.py, interpretation_resumen_gratuito.py,
 interpretation_areas_de_vida.py, interpretation_transitos.py,
 interpretation_horoscopos.py): cliente por defecto, parseo/validacion de
-la respuesta cruda, y el bloque de instruccion de genero.
+la respuesta cruda, logging de costo/uso, y el bloque de instruccion de
+genero.
 """
 import json
+import logging
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, ValidationError
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Cliente por defecto para los call sites existentes. Cada funcion publica
 # de los modulos interpretation_*.py acepta `client` como parametro (con
 # este singleton como default) para poder inyectar un cliente mockeado en
 # tests sin llamar a la API real.
 _client_default = AsyncAnthropic(api_key=settings.anthropic_api_key)
+
+# Precios publicados por Anthropic en USD por millon de tokens, para los
+# modelos que efectivamente usa este proyecto (ver cada interpretation_*.py).
+# Fuente de verdad: platform.claude.com/docs/en/pricing -- actualizar si
+# cambia el modelo usado en algun caso de uso.
+_PRECIOS_USD_POR_MILLON_TOKENS = {
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+    "claude-haiku-4-5-20251001": {"input": 1.00, "output": 5.00},
+}
+
+
+def _log_uso_claude(caso_de_uso: str, respuesta) -> None:
+    """
+    Loguea tokens de entrada/salida y costo estimado (USD) de una llamada a
+    Claude ya completada. Visibilidad basica de costo por tipo de llamada
+    (ver ROADMAP.md, Horizonte 4) -- no persiste nada, solo logging.
+    """
+    usage = respuesta.usage
+    modelo = respuesta.model
+    precios = _PRECIOS_USD_POR_MILLON_TOKENS.get(modelo)
+
+    if precios:
+        costo_usd = (
+            usage.input_tokens * precios["input"] + usage.output_tokens * precios["output"]
+        ) / 1_000_000
+        costo_texto = f"${costo_usd:.4f}"
+    else:
+        costo_texto = "desconocido (modelo sin precio registrado)"
+
+    logger.info(
+        "Uso de Claude — caso_de_uso=%s modelo=%s input_tokens=%d output_tokens=%d costo_estimado=%s",
+        caso_de_uso, modelo, usage.input_tokens, usage.output_tokens, costo_texto,
+    )
 
 
 def _limpiar_json_markdown(texto: str) -> str:

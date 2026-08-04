@@ -8,7 +8,7 @@ _env = Environment(
 )
 
 # Mapea el nombre del planeta (como aparece en el cálculo) a la clave usada
-# en el JSON de interpretación (definida en interpretation_service.py)
+# en el JSON de interpretación (definida en interpretation_carta_completa.py)
 MAPEO_INTERPRETACION = {
     "Sol": "sol",
     "Luna": "luna",

@@ -41,7 +41,10 @@ API backend en **FastAPI** para generar cartas natales astrológicas: cálculo a
 app/
 ├── main.py                # Setup de FastAPI: CORS, rate limiter, estáticos, router
 ├── api/
-│   └── endpoints.py        # Todas las rutas (públicas + /admin/*)
+│   ├── carta_natal.py       # Rutas publicas de carta natal (/resumen, /html, /data, /pdf, /compra, /token)
+│   ├── admin.py             # Rutas /admin/* (requieren X-Admin-Secret)
+│   ├── horoscopos.py        # Ruta publica /horoscopos/{cadencia}
+│   └── dev_test.py          # Rutas /test-* (requieren X-Admin-Secret)
 ├── core/
 │   ├── config.py            # Settings + constantes astrológicas (signos, regentes, dignidades...)
 │   ├── database.py           # Engine, sesión de SQLAlchemy y dependencia get_db
@@ -58,7 +61,12 @@ app/
 │   ├── regentes_service.py             # Regente de cada casa (para casas vacías)
 │   ├── transitos_service.py            # Tránsitos actuales vs. carta natal / rueda genérica
 │   ├── geocoding_service.py            # Ciudad + país → coordenadas
-│   ├── interpretation_service.py       # Llamadas a Claude (carta, áreas de vida, tránsitos, horóscopos)
+│   ├── interpretation_common.py        # Compartido por las llamadas a Claude: cliente, parseo/validacion, genero
+│   ├── interpretation_carta_completa.py    # Llamada a Claude: interpretacion premium completa
+│   ├── interpretation_resumen_gratuito.py  # Llamada a Claude: teaser gratuito
+│   ├── interpretation_areas_de_vida.py     # Llamada a Claude: vocacion/dinero/amor/herida/plan de accion
+│   ├── interpretation_transitos.py         # Llamada a Claude: transitos actuales vs. carta natal
+│   ├── interpretation_horoscopos.py        # Llamada a Claude: horoscopos genericos diarios/semanales
 │   ├── resumen_deterministico_service.py  # Resumen gratuito, basado en reglas (sin IA)
 │   ├── report_service.py               # Une cálculo + interpretación en el contexto de render
 │   ├── pdf_service.py                  # HTML → PDF con WeasyPrint

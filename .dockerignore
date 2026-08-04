@@ -1,0 +1,36 @@
+# Secretos y configuracion local -- nunca deben viajar dentro de la imagen.
+.env
+
+# Entorno virtual y artefactos de compilacion de Python. Sin este .dockerignore,
+# "COPY . ." los copia igual aunque esten en .gitignore -- .dockerignore es
+# independiente de git.
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Bases de datos locales (dev y copias de produccion para debugging).
+*.db
+
+# PDFs de prueba generados localmente durante desarrollo.
+*.pdf
+
+# Historial completo de git -- puede contener secretos de commits viejos
+# aunque ya no esten en el codigo actual. Nunca debe entrar a una imagen.
+.git/
+
+# CI/CD y configuracion de Claude Code: no forman parte del runtime de la app.
+.github/
+.claude/
+
+# Documentacion de ingenieria: no se necesita dentro del contenedor.
+CLAUDE.md
+ROADMAP.md
+TECH_DEBT.md
+
+# HTML/scripts sueltos ya reemplazados por el flujo actual (ver TECH_DEBT.md #11),
+# no referenciados por app/. Se excluyen de la imagen aunque sigan versionados.
+vista_web.html
+reporte.html
+carta_preview.html
+borrar_cache.py

@@ -19,7 +19,7 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 5 | ~~`AsyncAnthropic` como singleton de módulo, sin inyección de dependencias~~ | Testabilidad | **Resuelto** |
 | 6 | ~~Cero tests en el repo~~ | Testing | **Resuelto** (cobertura inicial) |
 | 7 | ~~`Base.metadata.create_all()` y Alembic coexisten sin una única fuente de verdad de schema~~ | Datos | **Resuelto** |
-| 8 | `requirements.txt` sin versión pinneada en la mayoría de las dependencias | Operación | Media |
+| 8 | ~~`requirements.txt` sin versión pinneada en la mayoría de las dependencias~~ | Operación | **Resuelto** |
 | 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
 | 10 | ~~Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py`~~ | Mantenibilidad | **Resuelto** |
 | 11 | ~~Código muerto versionado en la raíz del repo~~ | Housekeeping | **Resuelto** |
@@ -73,13 +73,10 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Fix:** se agregó la migración faltante `cd41b1f78898` (`crea tabla cartas natales base`) al inicio de la cadena, con el schema exacto que tenía la tabla antes de `ebe4e784d7ff` (verificado contra `astrea_prod_copy.db`, una copia de producción de esa época). Verificado programáticamente que `alembic upgrade head` contra una DB nueva reproduce el mismo schema (columnas, tipos, nullability, índices) que `Base.metadata.create_all()` — con una sola diferencia real donde Alembic es más correcto: `enviado` tiene `DEFAULT 0` a nivel de base de datos (así está en la `astrea.db` real), algo que un `create_all()` fresco con el modelo actual no aplica.
 - **¿Bloquea funcionalidades futuras?** No bloquea features, pero destraba onboarding y disaster recovery confiables.
 
-### 8. `requirements.txt` sin versiones pinneadas
+### 8. `requirements.txt` sin versiones pinneadas — Resuelto
 
-- **Dónde:** `requirements.txt`. Pinneados: `weasyprint==69.0`, `alembic==1.18.5`, `email-validator==2.3.0`. Sin pinnear: `fastapi`, `uvicorn`, `pyswisseph`, `pydantic`, `pydantic-settings`, `timezonefinder`, `jinja2`, `anthropic`, `sqlalchemy`, `geopy`, `python-dotenv`, `slowapi`.
-- **Impacto:** un `pip install -r requirements.txt` en una fecha distinta puede traer una versión mayor con breaking changes (particularmente riesgoso en `fastapi`, `pydantic` y `anthropic`, que cambian API con frecuencia) sin ningún control ni aviso.
-- **Prioridad:** Media.
-- **Esfuerzo:** bajo — correr `pip freeze` sobre el entorno que ya funciona y fijar versiones, o migrar a un lockfile (`pip-tools`, `poetry`, `uv`) si se quiere ir más allá de pinning simple.
-- **¿Bloquea funcionalidades futuras?** No, pero es la causa más probable de un build roto "sin que nadie haya tocado nada".
+- **Dónde:** `requirements.txt` y `requirements-dev.txt`, las 15 + 2 dependencias ahora pinneadas a la versión del entorno que ya funciona (via `pip freeze`). Verificado instalando desde cero en un venv limpio y confirmando que la app importa sin errores.
+- **¿Bloquea funcionalidades futuras?** No.
 
 ### 9. Dockerfile corre como root
 
@@ -188,7 +185,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 **Objetivo:** cerrar los hallazgos de infraestructura/operación que no son arquitectónicos pero sí necesarios para el "nivel profesional" mencionado en el objetivo del proyecto.
 
 - [x] Resolver la coexistencia de `create_all()` y Alembic (#7) — `main.py` deja de crear tablas, el setup de cualquier entorno pasa siempre por `alembic upgrade head` (el propio `Dockerfile` ya lo corre antes de arrancar `uvicorn`).
-- [ ] Pinnear versiones en `requirements.txt` (#8) o migrar a un lockfile.
+- [x] Pinnear versiones en `requirements.txt` (#8).
 - [ ] Agregar usuario no-root al Dockerfile (#9).
 - [ ] Correr la suite de tests (Fase 1) en el pipeline de CI ya existente (`.github/workflows/ci.yml`, hoy solo corre smoke test + build de Docker).
 - [ ] Reemplazar el `print()` de debug en `astro_service.py` por logging real (#14).

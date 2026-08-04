@@ -4,6 +4,7 @@ permite testear construccion de prompt + parseo de respuesta sin llamar a la API
 para los 5 casos de uso repartidos en app/services/interpretation_*.py.
 """
 import json
+import logging
 from types import SimpleNamespace
 
 from app.services.interpretation_resumen_gratuito import interpretar_resumen_gratuito
@@ -11,6 +12,7 @@ from app.services.interpretation_carta_completa import interpretar_carta_complet
 from app.services.interpretation_areas_de_vida import interpretar_areas_de_vida
 from app.services.interpretation_transitos import interpretar_transitos
 from app.services.interpretation_horoscopos import generar_horoscopos
+from app.services.interpretation_common import _log_uso_claude
 
 SIGNOS_EN_ORDEN = [
     "Aries", "Tauro", "Geminis", "Cancer", "Leo", "Virgo",
@@ -19,11 +21,17 @@ SIGNOS_EN_ORDEN = [
 
 
 class _FakeMessages:
-    def __init__(self, texto_respuesta: str):
+    def __init__(self, texto_respuesta: str, input_tokens: int = 100, output_tokens: int = 200):
         self._texto_respuesta = texto_respuesta
+        self._input_tokens = input_tokens
+        self._output_tokens = output_tokens
 
     async def create(self, **kwargs):
-        return SimpleNamespace(content=[SimpleNamespace(text=self._texto_respuesta)])
+        return SimpleNamespace(
+            content=[SimpleNamespace(text=self._texto_respuesta)],
+            model=kwargs["model"],
+            usage=SimpleNamespace(input_tokens=self._input_tokens, output_tokens=self._output_tokens),
+        )
 
 
 class _FakeAnthropicClient:
@@ -232,3 +240,41 @@ async def test_generar_horoscopos_usa_el_cliente_inyectado():
 
     assert "_validation_error" not in resultado
     assert len(resultado["horoscopos"]) == 12
+
+
+def test_log_uso_claude_calcula_costo_correcto_para_sonnet(caplog):
+    respuesta = SimpleNamespace(
+        model="claude-sonnet-4-6",
+        usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=1_000_000),
+    )
+
+    with caplog.at_level(logging.INFO):
+        _log_uso_claude("carta_completa", respuesta)
+
+    # $3/MTok input + $15/MTok output -> 1M de cada uno = $18.00
+    assert "costo_estimado=$18.0000" in caplog.text
+
+
+def test_log_uso_claude_calcula_costo_correcto_para_haiku(caplog):
+    respuesta = SimpleNamespace(
+        model="claude-haiku-4-5-20251001",
+        usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=1_000_000),
+    )
+
+    with caplog.at_level(logging.INFO):
+        _log_uso_claude("horoscopos_diario", respuesta)
+
+    # $1/MTok input + $5/MTok output -> 1M de cada uno = $6.00
+    assert "costo_estimado=$6.0000" in caplog.text
+
+
+def test_log_uso_claude_marca_costo_desconocido_si_falta_precio_registrado(caplog):
+    respuesta = SimpleNamespace(
+        model="un-modelo-futuro-sin-precio-registrado",
+        usage=SimpleNamespace(input_tokens=100, output_tokens=200),
+    )
+
+    with caplog.at_level(logging.INFO):
+        _log_uso_claude("carta_completa", respuesta)
+
+    assert "costo_estimado=desconocido" in caplog.text

@@ -49,7 +49,8 @@ app/
 │   ├── config.py            # Settings de entorno (API keys, admin secret)
 │   ├── database.py           # Engine, sesión de SQLAlchemy y dependencia get_db
 │   ├── admin_auth.py          # Verificación del header X-Admin-Secret
-│   └── limiter.py             # Instancia compartida del rate limiter
+│   ├── limiter.py             # Instancia compartida del rate limiter
+│   └── logging_config.py       # Configuracion central de logging (setup_logging)
 ├── models/
 │   ├── db_models.py           # Modelos SQLAlchemy: CartaNatalGuardada, HoroscopoGenerado
 │   └── schemas.py              # Esquemas Pydantic (requests y respuestas validadas de Claude)
@@ -63,7 +64,7 @@ app/
 │   ├── astro_service.py               # Casas, posiciones planetarias, signo/casa
 │   ├── time_service.py                 # Conversión hora local → UTC + día juliano
 │   ├── transitos_service.py            # Tránsitos actuales vs. carta natal / rueda genérica
-│   ├── interpretation_common.py        # Compartido por las llamadas a Claude: cliente, parseo/validacion, genero
+│   ├── interpretation_common.py        # Compartido por las llamadas a Claude: cliente, parseo/validacion, genero, logging de costo
 │   ├── interpretation_carta_completa.py    # Llamada a Claude: interpretacion premium completa
 │   ├── interpretation_resumen_gratuito.py  # Llamada a Claude: teaser gratuito
 │   ├── interpretation_areas_de_vida.py     # Llamada a Claude: vocacion/dinero/amor/herida/plan de accion

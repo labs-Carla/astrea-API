@@ -5,6 +5,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.api.carta_natal import router as carta_natal_router
 from app.api.admin import router as admin_router
 from app.api.horoscopos import router as horoscopos_router
@@ -12,6 +13,7 @@ from app.api.dev_test import router as dev_test_router
 from dotenv import load_dotenv
 
 load_dotenv()
+setup_logging()
 
 # El schema de la base de datos se gestiona exclusivamente via Alembic
 # ("alembic upgrade head", ver CLAUDE.md/README.md) -- ya no se crea

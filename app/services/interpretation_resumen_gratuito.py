@@ -1,6 +1,6 @@
 from anthropic import AsyncAnthropic
 from app.models.schemas import InterpretacionResumen
-from app.services.interpretation_common import _client_default, _parsear_respuesta
+from app.services.interpretation_common import _client_default, _parsear_respuesta, _log_uso_claude
 
 
 SYSTEM_PROMPT_RESUMEN = """Eres un astrólogo profesional experimentado, con un enfoque psicológico moderno.
@@ -64,5 +64,6 @@ async def interpretar_resumen_gratuito(calculo: dict, client: AsyncAnthropic = _
         messages=[{"role": "user", "content": prompt_usuario}],
     )
 
+    _log_uso_claude("resumen_gratuito", respuesta)
     texto_crudo = respuesta.content[0].text.strip()
     return _parsear_respuesta(texto_crudo, InterpretacionResumen)

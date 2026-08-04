@@ -138,7 +138,8 @@ async def generar_resumen_gratuito(request:Request, datos: DatosNacimiento, db: 
 
 
 @router.post("/carta-natal/html", response_class=HTMLResponse)
-def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def generar_carta_natal_html(request: Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
@@ -166,7 +167,8 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/data")
-def generar_carta_natal_data(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def generar_carta_natal_data(request: Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
@@ -197,7 +199,8 @@ def generar_carta_natal_data(datos: DatosNacimiento, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/pdf")
-async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def generar_carta_natal_pdf(request: Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
@@ -231,7 +234,8 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/compra")
-async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def procesar_compra(request: Request, datos: DatosCompra, db: Session = Depends(get_db)):
     """
     Recibe los datos enviados desde gracias.html tras una compra en Hotmart.
     Calcula la carta astronomica (Swiss Ephemeris, sin IA) y guarda

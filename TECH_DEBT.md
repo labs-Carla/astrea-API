@@ -35,9 +35,9 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 ### 1. Endpoints públicos que disparan llamadas pagas a Claude sin control — Crítica
 
 - **Dónde:** `app/api/endpoints.py`. En particular `/carta-natal/pdf` (línea 199), `/carta-natal/html` y `/carta-natal/data` (menos graves, requieren carta ya existente), y sobre todo `/test-interpretacion-completa` (línea 372) — endpoint sin auth, sin rate limit, que llama directamente a `interpretar_carta_completa` (Claude Sonnet) por cada request.
-- **Impacto:** solo `/carta-natal/resumen` tiene `@limiter.limit("5/minute")`. El resto de los endpoints públicos que calculan carta y/o llaman a Claude no tienen rate limit. `/test-*` (pensados para desarrollo, a juzgar por el nombre y por estar fuera de la convención de `revisor-endpoint.md`) quedan expuestos en producción sin ningún control — cualquiera puede generar costo de Claude repetidamente sin límite.
-- **Prioridad:** Crítica — es el único hallazgo con exposición económica activa y sin mitigación hoy.
-- **Esfuerzo:** bajo (horas). Agregar `@limiter.limit(...)` a los endpoints costosos que faltan, y sacar `/test-*` de producción (flag de entorno, o quitarlos del router en prod, o exigir `verificar_admin_secret`).
+- **Impacto:** `/carta-natal/resumen`, `/carta-natal/html`, `/carta-natal/data`, `/carta-natal/pdf` y `/carta-natal/compra` ya tienen `@limiter.limit("5/minute")`. Sigue pendiente `/test-*` (pensados para desarrollo, a juzgar por el nombre y por estar fuera de la convención de `revisor-endpoint.md`) — quedan expuestos en producción sin ningún control, cualquiera puede generar costo de Claude repetidamente sin límite.
+- **Prioridad:** Crítica — mientras `/test-*` siga sin restricción, la exposición económica activa no está mitigada del todo.
+- **Esfuerzo:** bajo (horas). Falta sacar `/test-*` de producción (flag de entorno, o quitarlos del router en prod, o exigir `verificar_admin_secret`).
 - **¿Bloquea funcionalidades futuras?** No, pero es el ítem con mayor riesgo de daño real si no se atiende — tratar fuera del roadmap de arquitectura, como fix inmediato.
 
 ### 2. Sin `.dockerignore` — riesgo de fuga de secretos en la imagen
@@ -159,10 +159,10 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Objetivo:** eliminar el riesgo activo (#1 y #2) sin tocar arquitectura. Esto no es parte de la migración a Clean Architecture — es un fix de seguridad/costo que no debería esperar a ninguna fase posterior.
 
-- Agregar rate limit a los endpoints públicos costosos que no lo tienen (`/carta-natal/pdf`, `/carta-natal/html`, `/carta-natal/data`, `/carta-natal/compra`).
-- Sacar `/test-*` de producción (flag de entorno, o exigir `verificar_admin_secret`, o eliminarlos si ya no se usan).
-- Crear `.dockerignore` (`.env`, `venv/`, `*.db`, `*.pdf`, `.git/`).
-- Eliminar código muerto versionado (#11), ya que es trabajo de minutos y reduce ruido para el resto del plan.
+- [x] Agregar rate limit a los endpoints públicos costosos que no lo tienen (`/carta-natal/pdf`, `/carta-natal/html`, `/carta-natal/data`, `/carta-natal/compra`).
+- [ ] Sacar `/test-*` de producción (flag de entorno, o exigir `verificar_admin_secret`, o eliminarlos si ya no se usan).
+- [x] Crear `.dockerignore` (`.env`, `venv/`, `*.db`, `*.pdf`, `.git/`).
+- [ ] Eliminar código muerto versionado (#11), ya que es trabajo de minutos y reduce ruido para el resto del plan.
 
 **Criterio de salida:** ningún endpoint público puede disparar una llamada a Claude sin límite; `.env` no puede terminar en una imagen Docker construida a partir de este repo.
 

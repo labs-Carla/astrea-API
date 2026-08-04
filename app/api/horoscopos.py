@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.services.persistence_service import obtener_horoscopo_mas_reciente
+from app.infrastructure.persistence_service import obtener_horoscopo_mas_reciente
 
 router = APIRouter()
 

@@ -177,7 +177,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 - [x] Mover cálculo puro sin efectos secundarios (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`) a `app/domain/`. Verificado: ninguno de los 4 importa FastAPI, SQLAlchemy ni el SDK de Anthropic.
 - [x] Separar `app/core/config.py` (#12): `Settings` de entorno se queda ahí; las constantes astrológicas se mueven a `app/domain/astro_constants.py`, para que el paquete de dominio no dependa de nada relacionado a configuración.
 - [ ] Evaluar si aislar la parte de `astro_service.py` que no llama a `swisseph` directamente (queda pendiente por ahora — separarla exigiría partir un módulo ya cohesivo sin una segunda necesidad real, ver CLAUDE.md "No abstracción especulativa").
-- [ ] Mover clientes de infraestructura (Anthropic, Nominatim, el acceso a SQLAlchemy hoy en `persistence_service.py`, WeasyPrint) hacia un paquete de infraestructura.
+- [x] Mover clientes de infraestructura hacia `app/infrastructure/`: `geocoding_service.py` (Nominatim), `persistence_service.py` (acceso a SQLAlchemy) y `pdf_service.py` (WeasyPrint). El cliente de Anthropic queda en `app/services/interpretation_common.py` por ahora — separarlo del resto de `interpretation_*.py` (prompt + llamada mezclados) es la reescritura más grande que evita este horizonte, ver nota abajo.
 - [ ] Los servicios de aplicación que queden en `app/services/` se convierten en orquestadores finos que llaman dominio + infraestructura, no en el lugar donde vive la lógica.
 
 **Criterio de salida:** el código de dominio no importa nada de FastAPI, SQLAlchemy ni del SDK de Anthropic. *(cumplido para lo ya movido a `app/domain/`; falta el resto de la fase)*

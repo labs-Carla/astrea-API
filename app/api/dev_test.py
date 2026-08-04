@@ -7,7 +7,7 @@ from app.services.astro_service import calcular_casas, calcular_posiciones_plane
 from app.domain.aspectos_service import calcular_todos_los_aspectos
 from app.domain.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.interpretation_carta_completa import interpretar_carta_completa
-from app.services.geocoding_service import geocodificar_ciudad
+from app.infrastructure.geocoding_service import geocodificar_ciudad
 
 router = APIRouter()
 

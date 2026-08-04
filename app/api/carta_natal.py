@@ -9,13 +9,13 @@ from app.models.schemas import DatosNacimiento, DatosCompra
 from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
 from app.services.astro_service import calcular_casas, calcular_posiciones_planetarias
 from app.services.report_service import generar_html_reporte, construir_contexto
-from app.services.pdf_service import generar_pdf_desde_html
+from app.infrastructure.pdf_service import generar_pdf_desde_html
 from app.services.interpretation_carta_completa import interpretar_carta_completa
 from app.domain.resumen_deterministico_service import generar_resumen_deterministico
 from app.domain.aspectos_service import calcular_todos_los_aspectos
 from app.domain.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
-from app.services.geocoding_service import geocodificar_ciudad
-from app.services.persistence_service import (
+from app.infrastructure.geocoding_service import geocodificar_ciudad
+from app.infrastructure.persistence_service import (
     buscar_carta_existente,
     guardar_resumen,
     guardar_carta_completa,

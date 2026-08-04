@@ -24,7 +24,11 @@ RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-# alembic upgrade head corre en cada arranque del contenedor -- es la unica
-# fuente de verdad del schema (main.py ya no llama a create_all(), ver
-# TECH_DEBT.md #7). Sin esto, un deploy nuevo levantaria con la DB vacia.
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
+# HOTFIX TEMPORAL (incidente de produccion, ver commit): "alembic upgrade
+# head" saca el contenedor en crash loop porque el alembic_version real de
+# produccion esta desincronizado de su schema real (arrastra una tabla
+# creada por el viejo create_all() que Alembic no tiene registrada como
+# aplicada). Se saca el paso de migracion del arranque para restaurar el
+# servicio ya mismo; se revierte a la version con "alembic upgrade head"
+# apenas se corrija el puntero de alembic_version en produccion.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

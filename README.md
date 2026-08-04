@@ -41,7 +41,10 @@ API backend en **FastAPI** para generar cartas natales astrológicas: cálculo a
 app/
 ├── main.py                # Setup de FastAPI: CORS, rate limiter, estáticos, router
 ├── api/
-│   └── endpoints.py        # Todas las rutas (públicas + /admin/*)
+│   ├── carta_natal.py       # Rutas publicas de carta natal (/resumen, /html, /data, /pdf, /compra, /token)
+│   ├── admin.py             # Rutas /admin/* (requieren X-Admin-Secret)
+│   ├── horoscopos.py        # Ruta publica /horoscopos/{cadencia}
+│   └── dev_test.py          # Rutas /test-* (requieren X-Admin-Secret)
 ├── core/
 │   ├── config.py            # Settings + constantes astrológicas (signos, regentes, dignidades...)
 │   ├── database.py           # Engine, sesión de SQLAlchemy y dependencia get_db

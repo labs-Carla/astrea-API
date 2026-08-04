@@ -13,8 +13,8 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | # | Hallazgo | Categoría | Prioridad |
 |---|---|---|---|
 | 1 | ~~Endpoints públicos sin rate limit ni auth disparan llamadas pagas a Claude sin control~~ | Seguridad / costo | **Resuelto** |
-| 2 | Sin `.dockerignore`: `.env` y secretos pueden terminar dentro de la imagen Docker | Seguridad | **Crítica** |
-| 3 | `app/api/endpoints.py` — 591 líneas, todas las rutas del proyecto en un archivo | Arquitectura | Alta |
+| 2 | ~~Sin `.dockerignore`: `.env` y secretos pueden terminar dentro de la imagen Docker~~ | Seguridad | **Resuelto** |
+| 3 | ~~`app/api/endpoints.py` — 591 líneas, todas las rutas del proyecto en un archivo~~ | Arquitectura | **Resuelto** |
 | 4 | `app/services/interpretation_service.py` — 563 líneas, 4 responsabilidades mezcladas | Arquitectura | Alta |
 | 5 | ~~`AsyncAnthropic` como singleton de módulo, sin inyección de dependencias~~ | Testabilidad | **Resuelto** |
 | 6 | ~~Cero tests en el repo~~ | Testing | **Resuelto** (cobertura inicial) |
@@ -32,29 +32,23 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 
 ## Hallazgos detallados
 
-### 1. Endpoints públicos que disparan llamadas pagas a Claude sin control — Crítica
+### 1. Endpoints públicos que disparan llamadas pagas a Claude sin control — Resuelto
 
-- **Dónde:** `app/api/endpoints.py`. En particular `/carta-natal/pdf` (línea 199), `/carta-natal/html` y `/carta-natal/data` (menos graves, requieren carta ya existente), y sobre todo `/test-interpretacion-completa` (línea 372) — endpoint sin auth, sin rate limit, que llama directamente a `interpretar_carta_completa` (Claude Sonnet) por cada request.
+- **Dónde:** `app/api/carta_natal.py` y `app/api/dev_test.py` (antes, ambos vivían en el ya dividido `app/api/endpoints.py`).
 - **Impacto:** resuelto. `/carta-natal/resumen`, `/carta-natal/html`, `/carta-natal/data`, `/carta-natal/pdf` y `/carta-natal/compra` tienen `@limiter.limit("5/minute")`; `/test-interpretacion-completa`, `/test-aspectos` y `/test-dignidades-elementos` ahora exigen `verificar_admin_secret` (mismo patrón que `/admin/*`), en vez de estar abiertos sin control.
 - **Prioridad:** Resuelto — ya no hay exposición económica activa sin mitigación.
 - **Esfuerzo:** —
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 2. Sin `.dockerignore` — riesgo de fuga de secretos en la imagen
+### 2. Sin `.dockerignore` — Resuelto
 
-- **Dónde:** raíz del repo, `Dockerfile` línea 17 (`COPY . .`).
-- **Impacto:** no existe `.dockerignore`. El build de Docker copia todo el contexto, incluyendo `.env` (con `ANTHROPIC_API_KEY` y `ADMIN_SECRET`) si está presente en el directorio al momento del build, además de `venv/`, `*.db` y los PDFs de prueba. Si esa imagen se publica en cualquier registry, los secretos quedan en una capa de la imagen de forma permanente, incluso si se borran después.
-- **Prioridad:** Crítica — es una fuga de secretos, no una preferencia de estilo.
-- **Esfuerzo:** trivial (minutos): crear `.dockerignore` con al menos `.env`, `venv/`, `*.db`, `*.pdf`, `.git/`.
-- **¿Bloquea funcionalidades futuras?** No, pero debe resolverse antes que cualquier otra tarea de infraestructura.
+- **Dónde:** raíz del repo. Existe `.dockerignore` con `.env`, `venv/`, `*.db`, `*.pdf`, `.git/`, `.github/`, `.claude/` y la documentación de ingeniería.
+- **¿Bloquea funcionalidades futuras?** No.
 
-### 3. `app/api/endpoints.py` — god-file de rutas
+### 3. `app/api/endpoints.py` — Resuelto
 
-- **Dónde:** `app/api/endpoints.py` (591 líneas).
-- **Impacto:** carta natal, admin, horóscopos y endpoints de test mezclados en un único router. Ya documentado en `CLAUDE.md` ("God-files: regla split-first"), con convención de destino ya definida en `.claude/agents/revisor-endpoint.md` (`carta_natal.py`, `admin.py`, `horoscopos.py`, `dev_test.py`).
-- **Prioridad:** Alta.
-- **Esfuerzo:** medio, pero se paga incrementalmente (ver Fase 2 del plan).
-- **¿Bloquea funcionalidades futuras?** Sí — dificulta aislar la capa de interfaz de la de aplicación, y cada endpoint nuevo aumenta el costo de separar después.
+- **Dónde:** el god-file de 591 líneas se dividió en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py` y `app/api/dev_test.py`, siguiendo la convención ya definida en `CLAUDE.md`. Verificado sin cambios de comportamiento: el `openapi.json` generado es idéntico antes y después del split (mismas 18 rutas, mismos parámetros, mismas dependencias de auth).
+- **¿Bloquea funcionalidades futuras?** No.
 
 ### 4. `app/services/interpretation_service.py` — god-file de generación de contenido
 
@@ -66,13 +60,13 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 
 ### 5. `AsyncAnthropic` como singleton de módulo — Resuelto
 
-- **Dónde:** `app/services/interpretation_service.py`. El singleton pasó a llamarse `_client_default`, y las 5 funciones públicas del módulo aceptan `client: AsyncAnthropic = _client_default` como parámetro — los call sites existentes en `endpoints.py` no cambiaron (siguen usando el default).
+- **Dónde:** `app/services/interpretation_service.py`. El singleton pasó a llamarse `_client_default`, y las 5 funciones públicas del módulo aceptan `client: AsyncAnthropic = _client_default` como parámetro — los call sites existentes en `app/api/` no cambiaron (siguen usando el default).
 - **¿Bloquea funcionalidades futuras?** No, ya no bloquea la Fase 1.
 
 ### 6. Cero tests en el repo — Resuelto (cobertura inicial)
 
 - **Dónde:** `tests/` con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`). 31 tests corriendo: `test_interpretation_service.py` cubre las 5 funciones públicas de `interpretation_service.py` con un cliente Claude mockeado (sin red), y `test_astro_service.py` / `test_aspectos_service.py` / `test_dignidades_service.py` / `test_regentes_service.py` / `test_resumen_deterministico_service.py` cubren todas las funciones de dominio puro del plan de Fase 1.
-- **Impacto restante:** no hay tests de integración de endpoints (`app/api/endpoints.py`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para cuando se aborde el Horizonte 2 (split de god-files) o si se agrega CI (Horizonte 4).
+- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para cuando se termine el Horizonte 2 (split de `interpretation_service.py`) o si se agrega CI (Horizonte 4).
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 7. `Base.metadata.create_all()` y Alembic sin una única fuente de verdad
@@ -176,9 +170,9 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Objetivo:** ejecutar la convención ya decidida por el equipo (`.claude/agents/revisor-endpoint.md`) para las rutas, y aplicar el mismo criterio a `interpretation_service.py`.
 
-- Partir `app/api/endpoints.py` en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py`, `app/api/dev_test.py`, moviendo cada endpoint a su archivo de dominio sin cambiar su comportamiento.
-- Partir `interpretation_service.py` por caso de uso — como mínimo, separar el bloque compartido (parseo + validación) de los 4 prompts, y evaluar si cada prompt merece su propio módulo.
-- Extraer el bloque de instrucción de género duplicado (#10) a un helper compartido, aprovechando que ya se está tocando el archivo.
+- [x] Partir `app/api/endpoints.py` en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py`, `app/api/dev_test.py`, moviendo cada endpoint a su archivo de dominio sin cambiar su comportamiento.
+- [ ] Partir `interpretation_service.py` por caso de uso — como mínimo, separar el bloque compartido (parseo + validación) de los 4 prompts, y evaluar si cada prompt merece su propio módulo.
+- [ ] Extraer el bloque de instrucción de género duplicado (#10) a un helper compartido, aprovechando que ya se está tocando el archivo.
 
 **Criterio de salida:** ningún archivo de `app/api/` o `app/services/` mezcla responsabilidades que no comparten una única razón de cambio.
 

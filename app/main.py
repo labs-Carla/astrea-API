@@ -5,7 +5,10 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 from app.core.config import settings
-from app.api.endpoints import router
+from app.api.carta_natal import router as carta_natal_router
+from app.api.admin import router as admin_router
+from app.api.horoscopos import router as horoscopos_router
+from app.api.dev_test import router as dev_test_router
 from app.core.database import Base, engine
 from dotenv import load_dotenv
 
@@ -43,7 +46,10 @@ app.add_middleware(
 # accesibles en /static/... (ej. /static/css/carta_web.css)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(router, prefix="/api/v1")
+app.include_router(carta_natal_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(horoscopos_router, prefix="/api/v1")
+app.include_router(dev_test_router, prefix="/api/v1")
 
 @app.get("/health")
 def health_check():

@@ -46,7 +46,7 @@ app/
 │   ├── horoscopos.py        # Ruta publica /horoscopos/{cadencia}
 │   └── dev_test.py          # Rutas /test-* (requieren X-Admin-Secret)
 ├── core/
-│   ├── config.py            # Settings + constantes astrológicas (signos, regentes, dignidades...)
+│   ├── config.py            # Settings de entorno (API keys, admin secret)
 │   ├── database.py           # Engine, sesión de SQLAlchemy y dependencia get_db
 │   ├── admin_auth.py          # Verificación del header X-Admin-Secret
 │   └── limiter.py             # Instancia compartida del rate limiter
@@ -54,6 +54,7 @@ app/
 │   ├── db_models.py           # Modelos SQLAlchemy: CartaNatalGuardada, HoroscopoGenerado
 │   └── schemas.py              # Esquemas Pydantic (requests y respuestas validadas de Claude)
 ├── domain/
+│   ├── astro_constants.py              # Constantes astrologicas (signos, regentes, dignidades...)
 │   ├── aspectos_service.py             # Cálculo de aspectos entre puntos de la carta (puro)
 │   ├── dignidades_service.py           # Dignidades esenciales + elementos/modalidades (puro)
 │   ├── regentes_service.py             # Regente de cada casa (para casas vacías) (puro)

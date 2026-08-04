@@ -23,7 +23,7 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
 | 10 | ~~Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py`~~ | Mantenibilidad | **Resuelto** |
 | 11 | ~~Código muerto versionado en la raíz del repo~~ | Housekeeping | **Resuelto** |
-| 12 | `app/core/config.py` mezcla `Settings` de entorno con constantes astrológicas de dominio | Arquitectura | Baja |
+| 12 | ~~`app/core/config.py` mezcla `Settings` de entorno con constantes astrológicas de dominio~~ | Arquitectura | **Resuelto** |
 | 13 | Coincidencia de carta existente por igualdad exacta de floats (lat/lon) | Datos | Baja |
 | 14 | `print()` de debug en código productivo (`astro_service.py`) | Housekeeping | Baja |
 | 15 | Copia de base de datos de producción en el entorno de desarrollo local | Datos / privacidad | Baja (operativo) |
@@ -100,11 +100,9 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Dónde:** `vista_web.html`, `reporte.html`, `carta_preview.html`, `borrar_cache.py` — eliminados del repo (confirmado sin referencias en `app/` antes de borrarlos). El bloque correspondiente en `.dockerignore` también se quitó por quedar obsoleto.
 - **¿Bloquea funcionalidades futuras?** No, era limpieza pura.
 
-### 12. `app/core/config.py` mezcla `Settings` con constantes de dominio
+### 12. `app/core/config.py` mezcla `Settings` con constantes de dominio — Resuelto
 
-- **Dónde:** `app/core/config.py` (139 líneas) — `Settings` (config de entorno vía pydantic-settings) y tablas astrológicas estáticas (`PLANETAS`, `SIGNOS`, `DOMICILIOS`, etc.) en el mismo archivo.
-- **Prioridad:** Baja — cosmético mientras el archivo no siga creciendo.
-- **Esfuerzo:** bajo.
+- **Dónde:** `app/core/config.py` ahora solo tiene `Settings` (config de entorno). Las tablas astrológicas estáticas (`PLANETAS`, `SIGNOS`, `DOMICILIOS`, etc.) se movieron a `app/domain/astro_constants.py`.
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 13. Coincidencia de carta existente por igualdad exacta de floats
@@ -176,7 +174,8 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Objetivo:** introducir las capas conceptuales descritas en "Objetivo arquitectónico del proyecto" (`CLAUDE.md`) como estructura real, migrando de forma incremental — no de una vez.
 
-- [x] Mover cálculo puro sin efectos secundarios (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`) a `app/domain/`. Verificado: ninguno de los 4 importa FastAPI, SQLAlchemy ni el SDK de Anthropic — solo dependen de constantes de `app/core/config.py`.
+- [x] Mover cálculo puro sin efectos secundarios (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`) a `app/domain/`. Verificado: ninguno de los 4 importa FastAPI, SQLAlchemy ni el SDK de Anthropic.
+- [x] Separar `app/core/config.py` (#12): `Settings` de entorno se queda ahí; las constantes astrológicas se mueven a `app/domain/astro_constants.py`, para que el paquete de dominio no dependa de nada relacionado a configuración.
 - [ ] Evaluar si aislar la parte de `astro_service.py` que no llama a `swisseph` directamente (queda pendiente por ahora — separarla exigiría partir un módulo ya cohesivo sin una segunda necesidad real, ver CLAUDE.md "No abstracción especulativa").
 - [ ] Mover clientes de infraestructura (Anthropic, Nominatim, el acceso a SQLAlchemy hoy en `persistence_service.py`, WeasyPrint) hacia un paquete de infraestructura.
 - [ ] Los servicios de aplicación que queden en `app/services/` se convierten en orquestadores finos que llaman dominio + infraestructura, no en el lugar donde vive la lógica.

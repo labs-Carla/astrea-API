@@ -24,7 +24,7 @@ Cuando exista más de una solución válida, preferir la que facilite el manteni
 
 **Hacia dónde evoluciona concretamente.** El destino no es una carpeta específica hoy, sino un conjunto de capas conceptuales que ya se pueden usar como lente al decidir dónde va código nuevo, aunque el árbol de carpetas actual (`app/api/`, `app/services/`, `app/models/`, `app/core/`) todavía no las refleje 1 a 1:
 
-- **Dominio** — reglas de negocio puras, sin dependencias externas (FastAPI, SQLAlchemy, Anthropic, Nominatim). Ya vive en `app/domain/`: cálculos astrológicos puros (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`). Reglas del funnel de una carta siguen mezcladas en `app/services/` por ahora.
+- **Dominio** — reglas de negocio puras, sin dependencias externas (FastAPI, SQLAlchemy, Anthropic, Nominatim). Ya vive en `app/domain/`: cálculos astrológicos puros (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`) y sus constantes de referencia (`astro_constants.py`). Reglas del funnel de una carta siguen mezcladas en `app/services/` por ahora.
 - **Aplicación** — casos de uso que orquestan dominio + infraestructura para cumplir una operación completa (ej. "generar la interpretación premium de una carta"). Hoy vive mezclada dentro de `app/services/` y de `_calcular_todo` en `app/api/carta_natal.py`.
 - **Infraestructura** — detalles externos reemplazables: cliente de Anthropic, geocodificación (Nominatim), persistencia (SQLAlchemy/SQLite), renderizado (WeasyPrint), efemérides (Swiss Ephemeris).
 - **Interfaz** — HTTP: routers de FastAPI, serialización de request/response. Es la capa más externa.
@@ -155,7 +155,7 @@ Esta sección describe cómo funciona el sistema hoy — es el mapa, no el crite
 4. `domain.aspectos_service.calcular_todos_los_aspectos` — aspectos mayores entre todos los puntos.
 5. `domain.dignidades_service.calcular_dignidades_de_carta` / `calcular_elementos_y_modalidades` — dignidades esenciales, balance de elemento/modalidad.
 
-Las tablas de referencia astrológica (códigos de planetas, signos, dispositores, dignidades, elementos/modalidades) son constantes en `app/core/config.py`, no viven en los servicios.
+Las tablas de referencia astrológica (códigos de planetas, signos, dispositores, dignidades, elementos/modalidades) son constantes en `app/domain/astro_constants.py`, no viven en los servicios. `app/core/config.py` solo tiene `Settings` (config de entorno).
 
 **Modelo de persistencia — una fila que crece a lo largo del funnel** (`CartaNatalGuardada` en `db_models.py`): una carta se identifica de forma única por `(fecha_hora_local, latitud, longitud)`. La misma fila acumula, en orden, a medida que el cliente avanza en el funnel: `calculo_json` (siempre) → `resumen_json` (teaser gratis) → `interpretacion_json` (premium, narrativa completa) → `areas_de_vida_json` (2da llamada a Claude) → `transitos_json` (3ra llamada a Claude) → `token`/`enviado` (aprobado manualmente y enviado). La etapa que ya existe se reutiliza en vez de recalcular Swiss Ephemeris o volver a pagar una llamada a Claude — revisar `deserializar_carta` y los `obtener_*` de `persistence_service.py` antes de regenerar cualquier cosa.
 

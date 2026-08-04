@@ -373,7 +373,7 @@ def obtener_carta_por_token(token: str, db: Session = Depends(get_db)):
     return contexto
 
 
-@router.post("/test-interpretacion-completa")
+@router.post("/test-interpretacion-completa", dependencies=[Depends(verificar_admin_secret)])
 async def test_interpretacion_completa(datos: DatosNacimiento):
     latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
@@ -391,7 +391,7 @@ async def test_interpretacion_completa(datos: DatosNacimiento):
 
 
 
-@router.post("/test-aspectos")
+@router.post("/test-aspectos", dependencies=[Depends(verificar_admin_secret)])
 def test_aspectos(datos: DatosNacimiento):
     latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
@@ -448,7 +448,7 @@ async def generar_interpretacion_admin(
     return {"status": "generada", "mensaje": "Interpretacion generada correctamente."}
 
 
-@router.post("/test-dignidades-elementos")
+@router.post("/test-dignidades-elementos", dependencies=[Depends(verificar_admin_secret)])
 def test_dignidades_elementos(datos: DatosNacimiento):
     latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)

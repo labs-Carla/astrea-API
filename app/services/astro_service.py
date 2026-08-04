@@ -1,6 +1,6 @@
 import swisseph as swe
 import os
-from app.core.config import PLANETAS, SIGNOS
+from app.domain.astro_constants import PLANETAS, SIGNOS
 
 _RUTA_EPHE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ephe"))
 swe.set_ephe_path(_RUTA_EPHE)

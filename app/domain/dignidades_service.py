@@ -1,4 +1,4 @@
-from app.core.config import (
+from app.domain.astro_constants import (
     DOMICILIOS, EXALTACIONES, CAIDAS, EXILIOS,
     ELEMENTOS_POR_SIGNO, MODALIDADES_POR_SIGNO,
 )

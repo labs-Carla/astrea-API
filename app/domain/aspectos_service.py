@@ -1,4 +1,4 @@
-from app.core.config import ASPECTOS_MAYORES, ORBE_DEFAULT
+from app.domain.astro_constants import ASPECTOS_MAYORES, ORBE_DEFAULT
 
 
 def calcular_distancia_angular(grado_a: float, grado_b: float) -> float:

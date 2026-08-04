@@ -1,4 +1,4 @@
-from app.services.dignidades_service import calcular_dignidad
+from app.domain.dignidades_service import calcular_dignidad
 
 
 def test_calcular_dignidad_domicilio():

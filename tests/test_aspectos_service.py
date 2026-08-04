@@ -1,4 +1,4 @@
-from app.services.aspectos_service import detectar_aspecto, calcular_todos_los_aspectos
+from app.domain.aspectos_service import detectar_aspecto, calcular_todos_los_aspectos
 
 
 def test_detectar_aspecto_conjuncion_exacta():

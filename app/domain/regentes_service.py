@@ -1,4 +1,4 @@
-from app.core.config import DISPOSITORES_MODERNOS
+from app.domain.astro_constants import DISPOSITORES_MODERNOS
 
 
 def calcular_regentes_de_casas(calculo: dict) -> dict:

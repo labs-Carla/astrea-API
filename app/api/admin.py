@@ -11,7 +11,7 @@ from app.services.interpretation_areas_de_vida import interpretar_areas_de_vida
 from app.services.interpretation_transitos import interpretar_transitos
 from app.services.interpretation_horoscopos import generar_horoscopos
 from app.services.transitos_service import calcular_transitos_actuales, calcular_transitos_por_signo
-from app.services.persistence_service import (
+from app.infrastructure.persistence_service import (
     listar_pendientes_de_aprobacion,
     obtener_carta_por_id,
     aprobar_y_generar_token,

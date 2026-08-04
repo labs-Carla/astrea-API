@@ -46,31 +46,34 @@ app/
 │   ├── horoscopos.py        # Ruta publica /horoscopos/{cadencia}
 │   └── dev_test.py          # Rutas /test-* (requieren X-Admin-Secret)
 ├── core/
-│   ├── config.py            # Settings + constantes astrológicas (signos, regentes, dignidades...)
+│   ├── config.py            # Settings de entorno (API keys, admin secret)
 │   ├── database.py           # Engine, sesión de SQLAlchemy y dependencia get_db
 │   ├── admin_auth.py          # Verificación del header X-Admin-Secret
 │   └── limiter.py             # Instancia compartida del rate limiter
 ├── models/
 │   ├── db_models.py           # Modelos SQLAlchemy: CartaNatalGuardada, HoroscopoGenerado
 │   └── schemas.py              # Esquemas Pydantic (requests y respuestas validadas de Claude)
+├── domain/
+│   ├── astro_constants.py              # Constantes astrologicas (signos, regentes, dignidades...)
+│   ├── aspectos_service.py             # Cálculo de aspectos entre puntos de la carta (puro)
+│   ├── dignidades_service.py           # Dignidades esenciales + elementos/modalidades (puro)
+│   ├── regentes_service.py             # Regente de cada casa (para casas vacías) (puro)
+│   └── resumen_deterministico_service.py  # Resumen gratuito, basado en reglas (sin IA) (puro)
 ├── services/
 │   ├── astro_service.py               # Casas, posiciones planetarias, signo/casa
 │   ├── time_service.py                 # Conversión hora local → UTC + día juliano
-│   ├── aspectos_service.py             # Cálculo de aspectos entre puntos de la carta
-│   ├── dignidades_service.py           # Dignidades esenciales + elementos/modalidades
-│   ├── regentes_service.py             # Regente de cada casa (para casas vacías)
 │   ├── transitos_service.py            # Tránsitos actuales vs. carta natal / rueda genérica
-│   ├── geocoding_service.py            # Ciudad + país → coordenadas
 │   ├── interpretation_common.py        # Compartido por las llamadas a Claude: cliente, parseo/validacion, genero
 │   ├── interpretation_carta_completa.py    # Llamada a Claude: interpretacion premium completa
 │   ├── interpretation_resumen_gratuito.py  # Llamada a Claude: teaser gratuito
 │   ├── interpretation_areas_de_vida.py     # Llamada a Claude: vocacion/dinero/amor/herida/plan de accion
 │   ├── interpretation_transitos.py         # Llamada a Claude: transitos actuales vs. carta natal
 │   ├── interpretation_horoscopos.py        # Llamada a Claude: horoscopos genericos diarios/semanales
-│   ├── resumen_deterministico_service.py  # Resumen gratuito, basado en reglas (sin IA)
-│   ├── report_service.py               # Une cálculo + interpretación en el contexto de render
+│   └── report_service.py               # Une cálculo + interpretación en el contexto de render
+├── infrastructure/
+│   ├── geocoding_service.py            # Ciudad + país → coordenadas (Nominatim)
 │   ├── pdf_service.py                  # HTML → PDF con WeasyPrint
-│   └── persistence_service.py          # CRUD y (de)serialización de las cartas guardadas
+│   └── persistence_service.py          # CRUD y (de)serialización de las cartas guardadas (SQLAlchemy)
 ├── templates/
 │   ├── carta_report.html      # Template Jinja2 compartido por el HTML y el PDF
 │   └── assets/                 # Imágenes usadas por el template

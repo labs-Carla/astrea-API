@@ -22,7 +22,7 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 8 | `requirements.txt` sin versión pinneada en la mayoría de las dependencias | Operación | Media |
 | 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
 | 10 | Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py` | Mantenibilidad | Media |
-| 11 | Código muerto versionado en la raíz del repo (`vista_web.html`, `reporte.html`, `carta_preview.html`, `borrar_cache.py`) | Housekeeping | Baja |
+| 11 | ~~Código muerto versionado en la raíz del repo~~ | Housekeeping | **Resuelto** |
 | 12 | `app/core/config.py` mezcla `Settings` de entorno con constantes astrológicas de dominio | Arquitectura | Baja |
 | 13 | Coincidencia de carta existente por igualdad exacta de floats (lat/lon) | Datos | Baja |
 | 14 | `print()` de debug en código productivo (`astro_service.py`) | Housekeeping | Baja |
@@ -112,13 +112,10 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Esfuerzo:** trivial — extraer a `_instruccion_genero(genero: str | None) -> str`.
 - **¿Bloquea funcionalidades futuras?** No bloquea, pero cada prompt nuevo que copie el bloque (ya pasó 3 veces) aumenta el costo de arreglarlo después.
 
-### 11. Código muerto versionado en la raíz del repo
+### 11. Código muerto versionado en la raíz del repo — Resuelto
 
-- **Dónde:** `vista_web.html` (528 líneas), `reporte.html` (279 líneas), `carta_preview.html` (1034 líneas), `borrar_cache.py` (19 líneas) — todos tracked en git en la raíz del proyecto.
-- **Impacto:** el propio historial de commits (`4780d33 chore: elimina vista web basada en Jinja2, se reemplaza por frontend JS + endpoint JSON`) confirma que el flujo que estos archivos servían ya fue reemplazado. `borrar_cache.py` es un script ad-hoc de un solo uso con datos de una carta específica hardcodeados. Ninguno de los 4 es importado ni referenciado por `app/`. Generan confusión sobre qué es código vivo.
-- **Prioridad:** Baja.
-- **Esfuerzo:** trivial — confirmar que nada los referencia (`grep`) y eliminarlos.
-- **¿Bloquea funcionalidades futuras?** No, es limpieza pura.
+- **Dónde:** `vista_web.html`, `reporte.html`, `carta_preview.html`, `borrar_cache.py` — eliminados del repo (confirmado sin referencias en `app/` antes de borrarlos). El bloque correspondiente en `.dockerignore` también se quitó por quedar obsoleto.
+- **¿Bloquea funcionalidades futuras?** No, era limpieza pura.
 
 ### 12. `app/core/config.py` mezcla `Settings` con constantes de dominio
 
@@ -162,7 +159,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 - [x] Agregar rate limit a los endpoints públicos costosos que no lo tienen (`/carta-natal/pdf`, `/carta-natal/html`, `/carta-natal/data`, `/carta-natal/compra`).
 - [x] Sacar `/test-*` de producción (exige `verificar_admin_secret`, mismo patrón que `/admin/*`).
 - [x] Crear `.dockerignore` (`.env`, `venv/`, `*.db`, `*.pdf`, `.git/`).
-- [ ] Eliminar código muerto versionado (#11), ya que es trabajo de minutos y reduce ruido para el resto del plan.
+- [x] Eliminar código muerto versionado (#11).
 
 **Criterio de salida:** ningún endpoint público puede disparar una llamada a Claude sin límite; `.env` no puede terminar en una imagen Docker construida a partir de este repo.
 

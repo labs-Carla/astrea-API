@@ -6,7 +6,10 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.core.admin_auth import verificar_admin_secret
 from app.services.time_service import calcular_dia_juliano
-from app.services.interpretation_service import interpretar_carta_completa, interpretar_areas_de_vida, interpretar_transitos, generar_horoscopos
+from app.services.interpretation_carta_completa import interpretar_carta_completa
+from app.services.interpretation_areas_de_vida import interpretar_areas_de_vida
+from app.services.interpretation_transitos import interpretar_transitos
+from app.services.interpretation_horoscopos import generar_horoscopos
 from app.services.transitos_service import calcular_transitos_actuales, calcular_transitos_por_signo
 from app.services.persistence_service import (
     listar_pendientes_de_aprobacion,

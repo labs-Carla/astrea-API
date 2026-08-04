@@ -72,21 +72,19 @@ El límite dominio/infraestructura todavía no es explícito en el árbol de car
 
 Un módulo tiene una única razón de cambio. Ejemplos ya correctos en el repo: `time_service.py` cambia solo si cambia cómo se calculan husos horarios o el día juliano; `geocoding_service.py` cambia solo si cambia el proveedor de geocodificación.
 
-`interpretation_service.py` hoy viola esto: mezcla construcción de 4 prompts distintos, 4 llamadas a la API de Claude, parseo de markdown y validación de schema — al menos 3 razones de cambio distintas (cambiar un prompt, cambiar de proveedor de LLM, cambiar un esquema de validación) en un archivo de 563 líneas.
+Ejemplo ya corregido en el repo: `interpretation_service.py` mezclaba construcción de 5 prompts distintos, 5 llamadas a la API de Claude, parseo de markdown y validación de schema — al menos 3 razones de cambio distintas (cambiar un prompt, cambiar de proveedor de LLM, cambiar un esquema de validación) en un archivo de 563 líneas. Se dividió en `interpretation_common.py` (lo compartido: cliente por defecto, parseo/validación, instrucción de género) y un archivo por caso de uso (`interpretation_carta_completa.py`, `interpretation_resumen_gratuito.py`, `interpretation_areas_de_vida.py`, `interpretation_transitos.py`, `interpretation_horoscopos.py`) — cada uno cambia solo si cambia ese prompt específico.
 
 Regla práctica: si el cambio que necesitás hacer no tiene relación con la mayoría del archivo que estás tocando, es señal de que ya debería estar dividido. Extraé la pieza que estás tocando a su propio módulo como parte del cambio, no como tarea aparte "para después".
 
 ### 3. God-files: regla split-first
 
-`app/api/endpoints.py` ya se dividió (Horizonte 2) en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py` y `app/api/dev_test.py` — endpoint nuevo va directo al archivo de dominio correspondiente, nunca a un archivo único de rutas.
-
-Sigue pendiente `app/services/interpretation_service.py` (563 líneas) — 4 prompts + 4 llamadas a Claude + parseo + validación en un solo archivo. Regla: **no seguir agregándole código tal cual está.** Prompt nuevo → evaluar extraer su bloque (prompt + llamada + parseo) a un módulo propio en vez de sumarlo al monolito.
+Los dos god-files originales del proyecto ya se dividieron (Horizonte 2): `app/api/endpoints.py` en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py` y `app/api/dev_test.py`; `app/services/interpretation_service.py` en `interpretation_common.py` + un archivo por caso de uso (ver sección "Integración con Claude" más abajo). Endpoint nuevo → va directo al archivo de dominio correspondiente. Prompt nuevo de Claude → evaluar si merece su propio módulo `interpretation_*.py` en vez de sumarlo a uno existente que ya tiene su propia razón de cambio.
 
 Es migración incremental real: cada pieza movida a su propio archivo reduce el tamaño relativo del problema sin tocar lo que ya funciona.
 
 ### 4. Inversión de dependencias donde habilita testing
 
-`interpretation_service.py` acepta `client: AsyncAnthropic` como parámetro en cada una de sus 5 funciones públicas (`interpretar_carta_completa`, `interpretar_resumen_gratuito`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`), con `_client_default` (el singleton de módulo) como valor por defecto — así los call sites existentes en `app/api/carta_natal.py`, `admin.py` y `dev_test.py` no cambian, pero los tests pueden inyectar un doble sin llamar a la API real (ver `tests/test_interpretation_service.py`). Si una tarea agrega una 6ª llamada a Claude, seguir el mismo patrón.
+Cada uno de los 5 módulos `interpretation_*.py` acepta `client: AsyncAnthropic` como parámetro en su función pública (`interpretar_carta_completa`, `interpretar_resumen_gratuito`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`), con `_client_default` (el singleton definido en `interpretation_common.py`) como valor por defecto — así los call sites existentes en `app/api/carta_natal.py`, `admin.py` y `dev_test.py` no cambian, pero los tests pueden inyectar un doble sin llamar a la API real (ver `tests/test_interpretation_service.py`). Si una tarea agrega un 6º caso de uso de Claude, seguir el mismo patrón.
 
 `persistence_service.py` ya sigue el patrón correcto (recibe `db: Session` por parámetro en cada función) — es el ejemplo a imitar en el resto del código.
 
@@ -105,14 +103,14 @@ Hay servicios simples de una función (`pdf_service.py`, `time_service.py`) que 
 
 ### 7. Refactor incremental, nunca reescrituras
 
-- Nunca reescribir un módulo completo para cumplir una tarea chica. Si `interpretation_service.py` necesita un prompt nuevo, no es la ocasión de partir todo el archivo — se agrega en su lugar correcto y se deja el resto intacto.
+- Nunca reescribir un módulo completo para cumplir una tarea chica. Si un caso de uso de Claude necesita ajustarse, no es la ocasión de tocar los otros 4 módulos `interpretation_*.py` — se agrega en su lugar correcto y se deja el resto intacto.
 - Boy-scout rule acotada: si tocás una función, dejala mejor de como la encontraste — pero no extiendas el refactor a código vecino que la tarea no te pidió tocar.
 - Cuando haya más de una solución válida, elegí la que reduzca acoplamiento y facilite el próximo cambio, aunque tome un poco más de código hoy.
 - Ejemplo real ya en el repo: al agregar el cuarto prompt de Claude (`generar_horoscopos`), se replicó el patrón existente (prompt + llamada + `_limpiar_json_markdown` + validación) en vez de generalizarlo de entrada — correcto en su momento, porque todavía no había una segunda necesidad real de abstracción. Ahora que son 4 casos casi idénticos, sí es candidato real a un helper compartido la próxima vez que se toque ese archivo — la repetición dejó de pagar su costo.
 
 ## Deuda técnica conocida
 
-El proyecto tiene deuda técnica identificada y priorizada — el god-file `interpretation_service.py` (pendiente de split), y otros hallazgos de consistencia de datos y operación. El split de `endpoints.py`, la inyección de dependencias en la integración con Claude y la ausencia de tests ya se resolvieron.
+El proyecto tiene deuda técnica identificada y priorizada — hallazgos de consistencia de datos y operación pendientes (ver Fases 3-4 del plan de migración). Los dos god-files originales (`endpoints.py`, `interpretation_service.py`), la inyección de dependencias en la integración con Claude y la ausencia de tests ya se resolvieron.
 
 **`TECH_DEBT.md` es la fuente única y oficial para el seguimiento de esta deuda** (inventario completo, impacto, prioridad y plan de migración por fases). No se duplica el inventario acá — antes de tocar código en una zona con deuda conocida, revisar ese archivo. Si `TECH_DEBT.md` no existe o quedó desactualizado, tratarlo como una alerta a resolver, no como ausencia de deuda.
 
@@ -161,14 +159,14 @@ Las tablas de referencia astrológica (códigos de planetas, signos, dispositore
 
 **Modelo de persistencia — una fila que crece a lo largo del funnel** (`CartaNatalGuardada` en `db_models.py`): una carta se identifica de forma única por `(fecha_hora_local, latitud, longitud)`. La misma fila acumula, en orden, a medida que el cliente avanza en el funnel: `calculo_json` (siempre) → `resumen_json` (teaser gratis) → `interpretacion_json` (premium, narrativa completa) → `areas_de_vida_json` (2da llamada a Claude) → `transitos_json` (3ra llamada a Claude) → `token`/`enviado` (aprobado manualmente y enviado). La etapa que ya existe se reutiliza en vez de recalcular Swiss Ephemeris o volver a pagar una llamada a Claude — revisar `deserializar_carta` y los `obtener_*` de `persistence_service.py` antes de regenerar cualquier cosa.
 
-**Integración con Claude** (`interpretation_service.py`, el servicio más grande): 4 llamadas independientes, cada una con su propio system prompt, schema Pydantic y propósito:
-- `interpretar_carta_completa` — interpretación premium completa (una sola llamada para que la narrativa pueda tejer conexiones entre puntos de la carta).
-- `interpretar_resumen_gratuito` — teaser gratuito, deliberadamente superficial (solo Big Three), llamada separada de la interpretación completa.
-- `interpretar_areas_de_vida` — 2da llamada premium: vocación/dinero/amor/herida (Quirón)/plan de acción/brújula. Usa `regentes_service.calcular_regentes_de_casas` para poder interpretar casas vacías a través de su regente.
-- `interpretar_transitos` — 3ra llamada premium: tránsitos actuales vs. carta natal, foto fija tomada en el momento de aprobación, nunca se actualiza sola.
-- `generar_horoscopos` — horóscopos genéricos diarios/semanales para los 12 signos, usa Haiku (más barato, contenido no personalizado) en vez de Sonnet.
+**Integración con Claude** (`app/services/interpretation_common.py` + un `interpretation_*.py` por caso de uso): 5 llamadas independientes, cada una con su propio system prompt, schema Pydantic y propósito:
+- `interpretation_carta_completa.interpretar_carta_completa` — interpretación premium completa (una sola llamada para que la narrativa pueda tejer conexiones entre puntos de la carta).
+- `interpretation_resumen_gratuito.interpretar_resumen_gratuito` — teaser gratuito, deliberadamente superficial (solo Big Three), llamada separada de la interpretación completa.
+- `interpretation_areas_de_vida.interpretar_areas_de_vida` — 2da llamada premium: vocación/dinero/amor/herida (Quirón)/plan de acción/brújula. Usa `regentes_service.calcular_regentes_de_casas` para poder interpretar casas vacías a través de su regente.
+- `interpretation_transitos.interpretar_transitos` — 3ra llamada premium: tránsitos actuales vs. carta natal, foto fija tomada en el momento de aprobación, nunca se actualiza sola.
+- `interpretation_horoscopos.generar_horoscopos` — horóscopos genéricos diarios/semanales para los 12 signos, usa Haiku (más barato, contenido no personalizado) en vez de Sonnet.
 
-Las 4 parsean la respuesta cruda de Claude con `_limpiar_json_markdown` (saca los ```json que Claude a veces agrega aunque se le pida no hacerlo), y validan contra un schema Pydantic de `app/models/schemas.py`. Ante `json.JSONDecodeError`/`ValidationError` devuelven `{"_validation_error": ..., "_raw_response": ...}` en vez de lanzar — los callers (endpoints, `guardar_horoscopo`, etc.) chequean `"_validation_error"` en el dict en vez de depender de excepciones. Cada prompt inyecta `genero` (femenino/masculino/None) para controlar la concordancia gramatical de género en español del texto generado, con instrucción explícita de evitar nombrar el género como sustantivo ("esta mujer") a favor de sujeto tácito en español.
+Las 5 parsean la respuesta cruda de Claude con `interpretation_common._parsear_respuesta` (que a su vez usa `_limpiar_json_markdown` para sacar los ```json que Claude a veces agrega aunque se le pida no hacerlo), y validan contra un schema Pydantic de `app/models/schemas.py`. Ante `json.JSONDecodeError`/`ValidationError` devuelven `{"_validation_error": ..., "_raw_response": ...}` en vez de lanzar — los callers (endpoints, `guardar_horoscopo`, etc.) chequean `"_validation_error"` en el dict en vez de depender de excepciones. `interpretar_carta_completa`, `interpretar_areas_de_vida` y `interpretar_transitos` inyectan `genero` (femenino/masculino/None) vía `interpretation_common._instruccion_genero` para controlar la concordancia gramatical de género en español del texto generado, con instrucción explícita de evitar nombrar el género como sustantivo ("esta mujer") a favor de sujeto tácito en español (excepto en `interpretar_transitos`, que pide tercera persona fluida en su lugar).
 
 **Tránsitos vs. natal, y vs. casas "naturales":** `transitos_service.calcular_transitos_actuales` compara las posiciones planetarias de hoy contra las casas natales de una persona específica (usado en su reporte premium). `calcular_transitos_por_signo` en cambio mapea los tránsitos de hoy sobre la rueda genérica casa-por-signo (Aries=Casa1, Tauro=Casa2, ...) sin datos reales de nacimiento — esto es lo que alimenta los horóscopos genéricos, vía `astro_service.calcular_casa_natural`.
 

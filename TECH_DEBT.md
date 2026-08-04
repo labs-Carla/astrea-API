@@ -15,13 +15,13 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 1 | ~~Endpoints públicos sin rate limit ni auth disparan llamadas pagas a Claude sin control~~ | Seguridad / costo | **Resuelto** |
 | 2 | ~~Sin `.dockerignore`: `.env` y secretos pueden terminar dentro de la imagen Docker~~ | Seguridad | **Resuelto** |
 | 3 | ~~`app/api/endpoints.py` — 591 líneas, todas las rutas del proyecto en un archivo~~ | Arquitectura | **Resuelto** |
-| 4 | `app/services/interpretation_service.py` — 563 líneas, 4 responsabilidades mezcladas | Arquitectura | Alta |
+| 4 | ~~`app/services/interpretation_service.py` — 563 líneas, 4 responsabilidades mezcladas~~ | Arquitectura | **Resuelto** |
 | 5 | ~~`AsyncAnthropic` como singleton de módulo, sin inyección de dependencias~~ | Testabilidad | **Resuelto** |
 | 6 | ~~Cero tests en el repo~~ | Testing | **Resuelto** (cobertura inicial) |
 | 7 | `Base.metadata.create_all()` y Alembic coexisten sin una única fuente de verdad de schema | Datos | Media |
 | 8 | `requirements.txt` sin versión pinneada en la mayoría de las dependencias | Operación | Media |
 | 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
-| 10 | Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py` | Mantenibilidad | Media |
+| 10 | ~~Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py`~~ | Mantenibilidad | **Resuelto** |
 | 11 | ~~Código muerto versionado en la raíz del repo~~ | Housekeeping | **Resuelto** |
 | 12 | `app/core/config.py` mezcla `Settings` de entorno con constantes astrológicas de dominio | Arquitectura | Baja |
 | 13 | Coincidencia de carta existente por igualdad exacta de floats (lat/lon) | Datos | Baja |
@@ -50,23 +50,20 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Dónde:** el god-file de 591 líneas se dividió en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py` y `app/api/dev_test.py`, siguiendo la convención ya definida en `CLAUDE.md`. Verificado sin cambios de comportamiento: el `openapi.json` generado es idéntico antes y después del split (mismas 18 rutas, mismos parámetros, mismas dependencias de auth).
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 4. `app/services/interpretation_service.py` — god-file de generación de contenido
+### 4. `app/services/interpretation_service.py` — Resuelto
 
-- **Dónde:** `app/services/interpretation_service.py` (563 líneas).
-- **Impacto:** 4 prompts, 4 llamadas a Claude, parseo de markdown y validación de schema en un archivo. Es el servicio más grande del repo y el que concentra el mayor riesgo de negocio (es lo que el cliente paga).
-- **Prioridad:** Alta.
-- **Esfuerzo:** medio-alto, requiere primero la Fase 1 (tests + inyección de dependencias) para hacerlo con seguridad.
-- **¿Bloquea funcionalidades futuras?** Sí — bloquea testear la generación de contenido de forma aislada y bloquea cambiar de proveedor de LLM sin tocar los 4 casos de uso a la vez.
+- **Dónde:** el god-file de 563 líneas se dividió en `interpretation_common.py` (cliente por defecto, parseo/validación compartidos, `_instruccion_genero`) y un archivo por caso de uso: `interpretation_carta_completa.py`, `interpretation_resumen_gratuito.py`, `interpretation_areas_de_vida.py`, `interpretation_transitos.py`, `interpretation_horoscopos.py`. Verificado sin cambios de comportamiento: los prompts generados son idénticos byte a byte (para los 3 valores de `genero`) antes y después del split, y el `openapi.json` de la app no cambió.
+- **¿Bloquea funcionalidades futuras?** No.
 
 ### 5. `AsyncAnthropic` como singleton de módulo — Resuelto
 
-- **Dónde:** `app/services/interpretation_service.py`. El singleton pasó a llamarse `_client_default`, y las 5 funciones públicas del módulo aceptan `client: AsyncAnthropic = _client_default` como parámetro — los call sites existentes en `app/api/` no cambiaron (siguen usando el default).
+- **Dónde:** `app/services/interpretation_common.py` (el singleton, ahora `_client_default`). Cada una de las 5 funciones públicas repartidas en `interpretation_*.py` acepta `client: AsyncAnthropic = _client_default` como parámetro — los call sites existentes en `app/api/` no cambiaron (siguen usando el default).
 - **¿Bloquea funcionalidades futuras?** No, ya no bloquea la Fase 1.
 
 ### 6. Cero tests en el repo — Resuelto (cobertura inicial)
 
-- **Dónde:** `tests/` con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`). 31 tests corriendo: `test_interpretation_service.py` cubre las 5 funciones públicas de `interpretation_service.py` con un cliente Claude mockeado (sin red), y `test_astro_service.py` / `test_aspectos_service.py` / `test_dignidades_service.py` / `test_regentes_service.py` / `test_resumen_deterministico_service.py` cubren todas las funciones de dominio puro del plan de Fase 1.
-- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para cuando se termine el Horizonte 2 (split de `interpretation_service.py`) o si se agrega CI (Horizonte 4).
+- **Dónde:** `tests/` con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`, `testpaths = tests`). 31 tests corriendo: `test_interpretation_service.py` cubre las 5 funciones públicas repartidas en `interpretation_*.py` con un cliente Claude mockeado (sin red), y `test_astro_service.py` / `test_aspectos_service.py` / `test_dignidades_service.py` / `test_regentes_service.py` / `test_resumen_deterministico_service.py` cubren todas las funciones de dominio puro del plan de Fase 1.
+- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para si se agrega CI (Horizonte 4).
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 7. `Base.metadata.create_all()` y Alembic sin una única fuente de verdad
@@ -93,13 +90,10 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Esfuerzo:** bajo — agregar un usuario no-root y `USER` al final del Dockerfile.
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 10. Bloques de instrucción de género duplicados
+### 10. Bloques de instrucción de género duplicados — Resuelto
 
-- **Dónde:** `interpretation_service.py`, 3 apariciones casi idénticas del bloque femenino/masculino/neutro (`_construir_prompt_usuario`, `_construir_prompt_areas_de_vida`, `_construir_prompt_transitos`).
-- **Impacto:** si se ajusta la instrucción en un lugar y se olvida en los otros, los 3 flujos de Claude quedan inconsistentes en tono/concordancia entre sí.
-- **Prioridad:** Media.
-- **Esfuerzo:** trivial — extraer a `_instruccion_genero(genero: str | None) -> str`.
-- **¿Bloquea funcionalidades futuras?** No bloquea, pero cada prompt nuevo que copie el bloque (ya pasó 3 veces) aumenta el costo de arreglarlo después.
+- **Dónde:** extraído a `interpretation_common._instruccion_genero(genero, *, tercera_persona=False)`. Las 2 apariciones idénticas (`interpretar_carta_completa`, `interpretar_areas_de_vida`) y la variante distinta de `interpretar_transitos` (pide tercera persona en vez de prohibir el sustantivo de género) ahora comparten una única función — texto verificado idéntico al original para los 3 valores de `genero` en las 3 llamadas.
+- **¿Bloquea funcionalidades futuras?** No.
 
 ### 11. Código muerto versionado en la raíz del repo — Resuelto
 
@@ -166,15 +160,15 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Depende de:** nada — puede empezar en paralelo a la Fase 0.
 
-### Fase 2 — Split de los god-files
+### Fase 2 — Split de los god-files — Completa
 
-**Objetivo:** ejecutar la convención ya decidida por el equipo (`.claude/agents/revisor-endpoint.md`) para las rutas, y aplicar el mismo criterio a `interpretation_service.py`.
+**Objetivo:** dividir `app/api/endpoints.py` por dominio de rutas, y aplicar el mismo criterio a `interpretation_service.py`.
 
 - [x] Partir `app/api/endpoints.py` en `app/api/carta_natal.py`, `app/api/admin.py`, `app/api/horoscopos.py`, `app/api/dev_test.py`, moviendo cada endpoint a su archivo de dominio sin cambiar su comportamiento.
-- [ ] Partir `interpretation_service.py` por caso de uso — como mínimo, separar el bloque compartido (parseo + validación) de los 4 prompts, y evaluar si cada prompt merece su propio módulo.
-- [ ] Extraer el bloque de instrucción de género duplicado (#10) a un helper compartido, aprovechando que ya se está tocando el archivo.
+- [x] Partir `interpretation_service.py` por caso de uso: `interpretation_common.py` (compartido) + un archivo por caso (`interpretation_carta_completa.py`, `interpretation_resumen_gratuito.py`, `interpretation_areas_de_vida.py`, `interpretation_transitos.py`, `interpretation_horoscopos.py`).
+- [x] Extraer el bloque de instrucción de género duplicado (#10) a `interpretation_common._instruccion_genero`.
 
-**Criterio de salida:** ningún archivo de `app/api/` o `app/services/` mezcla responsabilidades que no comparten una única razón de cambio.
+**Criterio de salida:** ningún archivo de `app/api/` o `app/services/` mezcla responsabilidades que no comparten una única razón de cambio. *(cumplido)*
 
 **Depende de:** Fase 1 (tener tests hace este split seguro de verificar).
 

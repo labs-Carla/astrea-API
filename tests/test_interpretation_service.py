@@ -1,17 +1,16 @@
 """
-Prueba que el cliente de Claude inyectable (app/services/interpretation_service.py)
-permite testear construccion de prompt + parseo de respuesta sin llamar a la API real.
+Prueba que el cliente de Claude inyectable (app/services/interpretation_common.py)
+permite testear construccion de prompt + parseo de respuesta sin llamar a la API real,
+para los 5 casos de uso repartidos en app/services/interpretation_*.py.
 """
 import json
 from types import SimpleNamespace
 
-from app.services.interpretation_service import (
-    interpretar_resumen_gratuito,
-    interpretar_carta_completa,
-    interpretar_areas_de_vida,
-    interpretar_transitos,
-    generar_horoscopos,
-)
+from app.services.interpretation_resumen_gratuito import interpretar_resumen_gratuito
+from app.services.interpretation_carta_completa import interpretar_carta_completa
+from app.services.interpretation_areas_de_vida import interpretar_areas_de_vida
+from app.services.interpretation_transitos import interpretar_transitos
+from app.services.interpretation_horoscopos import generar_horoscopos
 
 SIGNOS_EN_ORDEN = [
     "Aries", "Tauro", "Geminis", "Cancer", "Leo", "Virgo",

@@ -5,3 +5,4 @@ __pycache__/
 astrea.db
 *.pdf
 astrea_prod_copy.db
+.pytest_cache/

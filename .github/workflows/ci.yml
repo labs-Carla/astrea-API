@@ -13,6 +13,43 @@ on:
       - main
 
 jobs:
+  # Corre la suite de pytest (Horizonte 1 del roadmap) en cada cambio
+  # propuesto -- gate real antes de mergear, no solo un smoke test.
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements-dev.txt
+
+      # Mismas librerias de sistema que instala el Dockerfile: pyswisseph
+      # y weasyprint se importan al cargar app.services/app.domain aunque
+      # los tests no los ejerciten directamente.
+      - name: Install system dependencies (WeasyPrint)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpango-1.0-0 \
+            libpangocairo-1.0-0 \
+            libcairo2 \
+            libgdk-pixbuf-2.0-0 \
+            libffi-dev \
+            shared-mime-info
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest
+
   # Valida que la app se pueda instalar y arrancar de punta a punta, tal
   # como quedaria en un entorno recien clonado (mismo escenario que un
   # dev nuevo o un deploy desde cero).
@@ -56,10 +93,16 @@ jobs:
       - name: Import check
         run: python -c "from app.main import app"
 
-      # Levanta la app real con uvicorn (create_all corre sobre una SQLite
-      # nueva del runner, igual que en un entorno recien clonado) y confirma
-      # que responde en /health. Es la verificacion mas cercana a "la app
-      # arranca en produccion" que se puede hacer sin desplegar de verdad.
+      # El schema ya no lo crea la app sola (create_all se saco de main.py,
+      # ver TECH_DEBT.md #7) -- corre las migraciones primero, igual que
+      # el Dockerfile antes de levantar uvicorn.
+      - name: Run migrations
+        run: alembic upgrade head
+
+      # Levanta la app real con uvicorn sobre esa SQLite nueva del runner
+      # (igual que un entorno recien clonado) y confirma que responde en
+      # /health. Es la verificacion mas cercana a "la app arranca en
+      # produccion" que se puede hacer sin desplegar de verdad.
       - name: Boot check
         run: |
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &

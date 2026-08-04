@@ -63,7 +63,7 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 ### 6. Cero tests en el repo — Resuelto (cobertura inicial)
 
 - **Dónde:** `tests/` con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`, `testpaths = tests`). 31 tests corriendo: `test_interpretation_service.py` cubre las 5 funciones públicas repartidas en `interpretation_*.py` con un cliente Claude mockeado (sin red), y `test_astro_service.py` / `test_aspectos_service.py` / `test_dignidades_service.py` / `test_regentes_service.py` / `test_resumen_deterministico_service.py` cubren todas las funciones de dominio puro del plan de Fase 1.
-- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para si se agrega CI (Horizonte 4).
+- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `infrastructure/persistence_service.py` — quedan fuera del alcance de Fase 1. La suite ya corre en CI (job `unit-tests`, ver Fase 4).
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 7. `Base.metadata.create_all()` y Alembic sin una única fuente de verdad — Resuelto
@@ -182,7 +182,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 - [x] Resolver la coexistencia de `create_all()` y Alembic (#7) — `main.py` deja de crear tablas, el setup de cualquier entorno pasa siempre por `alembic upgrade head` (el propio `Dockerfile` ya lo corre antes de arrancar `uvicorn`).
 - [x] Pinnear versiones en `requirements.txt` (#8).
 - [x] Agregar usuario no-root al Dockerfile (#9).
-- [ ] Correr la suite de tests (Fase 1) en el pipeline de CI ya existente (`.github/workflows/ci.yml`, hoy solo corre smoke test + build de Docker).
+- [x] Correr la suite de tests (Fase 1) en el pipeline de CI ya existente (`.github/workflows/ci.yml`): nuevo job `unit-tests` corre `pytest`, además de los ya existentes `app-smoke-test` (que ahora corre `alembic upgrade head` antes del boot check, ver #7) y `docker-build`.
 - [x] Reemplazar el `print()` de debug en `astro_service.py` por logging real (#14).
 
 **Depende de:** nada estructuralmente, pero tiene más sentido una vez que hay tests (Fase 1) que un CI pueda correr.

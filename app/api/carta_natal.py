@@ -11,9 +11,9 @@ from app.services.astro_service import calcular_casas, calcular_posiciones_plane
 from app.services.report_service import generar_html_reporte, construir_contexto
 from app.services.pdf_service import generar_pdf_desde_html
 from app.services.interpretation_carta_completa import interpretar_carta_completa
-from app.services.resumen_deterministico_service import generar_resumen_deterministico
-from app.services.aspectos_service import calcular_todos_los_aspectos
-from app.services.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
+from app.domain.resumen_deterministico_service import generar_resumen_deterministico
+from app.domain.aspectos_service import calcular_todos_los_aspectos
+from app.domain.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.services.geocoding_service import geocodificar_ciudad
 from app.services.persistence_service import (
     buscar_carta_existente,

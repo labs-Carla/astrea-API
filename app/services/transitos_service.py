@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from app.services.time_service import calcular_dia_juliano
 from app.services.astro_service import calcular_posiciones_transito, determinar_casa_natal
-from app.services.aspectos_service import calcular_aspectos_transito_natal
+from app.domain.aspectos_service import calcular_aspectos_transito_natal
 from app.core.config import SIGNOS
 from app.services.astro_service import calcular_casa_natural
 

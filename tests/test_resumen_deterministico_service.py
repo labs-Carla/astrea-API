@@ -1,4 +1,4 @@
-from app.services.resumen_deterministico_service import (
+from app.domain.resumen_deterministico_service import (
     generar_resumen_deterministico,
     SOL_TEXTOS,
     LUNA_TEXTOS,

@@ -172,15 +172,16 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Depende de:** Fase 1 (tener tests hace este split seguro de verificar).
 
-### Fase 3 — Separación explícita dominio/infraestructura
+### Fase 3 — Separación explícita dominio/infraestructura — En progreso
 
 **Objetivo:** introducir las capas conceptuales descritas en "Objetivo arquitectónico del proyecto" (`CLAUDE.md`) como estructura real, migrando de forma incremental — no de una vez.
 
-- Mover cálculo puro sin efectos secundarios (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, la parte de `astro_service.py` que no llama a `swisseph` directamente si se decide aislarlo, `resumen_deterministico_service.py`) hacia un paquete de dominio.
-- Mover clientes de infraestructura (Anthropic, Nominatim, el acceso a SQLAlchemy hoy en `persistence_service.py`, WeasyPrint) hacia un paquete de infraestructura.
-- Los servicios de aplicación que queden en `app/services/` se convierten en orquestadores finos que llaman dominio + infraestructura, no en el lugar donde vive la lógica.
+- [x] Mover cálculo puro sin efectos secundarios (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`) a `app/domain/`. Verificado: ninguno de los 4 importa FastAPI, SQLAlchemy ni el SDK de Anthropic — solo dependen de constantes de `app/core/config.py`.
+- [ ] Evaluar si aislar la parte de `astro_service.py` que no llama a `swisseph` directamente (queda pendiente por ahora — separarla exigiría partir un módulo ya cohesivo sin una segunda necesidad real, ver CLAUDE.md "No abstracción especulativa").
+- [ ] Mover clientes de infraestructura (Anthropic, Nominatim, el acceso a SQLAlchemy hoy en `persistence_service.py`, WeasyPrint) hacia un paquete de infraestructura.
+- [ ] Los servicios de aplicación que queden en `app/services/` se convierten en orquestadores finos que llaman dominio + infraestructura, no en el lugar donde vive la lógica.
 
-**Criterio de salida:** el código de dominio no importa nada de FastAPI, SQLAlchemy ni del SDK de Anthropic.
+**Criterio de salida:** el código de dominio no importa nada de FastAPI, SQLAlchemy ni del SDK de Anthropic. *(cumplido para lo ya movido a `app/domain/`; falta el resto de la fase)*
 
 **Depende de:** Fase 2 (mover código ya dividido por responsabilidad es mucho más simple que mover un god-file).
 

@@ -1,4 +1,4 @@
-from app.services.regentes_service import calcular_regentes_de_casas
+from app.domain.regentes_service import calcular_regentes_de_casas
 
 SIGNOS_EN_ORDEN = [
     "Aries", "Tauro", "Geminis", "Cancer", "Leo", "Virgo",

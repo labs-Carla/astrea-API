@@ -1,7 +1,7 @@
 from anthropic import AsyncAnthropic
 from app.models.schemas import InterpretacionAreasDeVida
 from app.services.interpretation_common import _client_default, _parsear_respuesta, _instruccion_genero
-from app.services.regentes_service import calcular_regentes_de_casas
+from app.domain.regentes_service import calcular_regentes_de_casas
 
 
 SYSTEM_PROMPT_AREAS_DE_VIDA = """Eres un astrólogo profesional experimentado, con un enfoque psicológico moderno

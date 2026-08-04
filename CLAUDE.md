@@ -24,7 +24,7 @@ Cuando exista más de una solución válida, preferir la que facilite el manteni
 
 **Hacia dónde evoluciona concretamente.** El destino no es una carpeta específica hoy, sino un conjunto de capas conceptuales que ya se pueden usar como lente al decidir dónde va código nuevo, aunque el árbol de carpetas actual (`app/api/`, `app/services/`, `app/models/`, `app/core/`) todavía no las refleje 1 a 1:
 
-- **Dominio** — reglas de negocio puras, sin dependencias externas (FastAPI, SQLAlchemy, Anthropic, Nominatim). Ejemplos ya existentes: cálculos astrológicos (`dignidades_service.py`, `aspectos_service.py`, `regentes_service.py`), reglas del funnel de una carta.
+- **Dominio** — reglas de negocio puras, sin dependencias externas (FastAPI, SQLAlchemy, Anthropic, Nominatim). Ya vive en `app/domain/`: cálculos astrológicos puros (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`). Reglas del funnel de una carta siguen mezcladas en `app/services/` por ahora.
 - **Aplicación** — casos de uso que orquestan dominio + infraestructura para cumplir una operación completa (ej. "generar la interpretación premium de una carta"). Hoy vive mezclada dentro de `app/services/` y de `_calcular_todo` en `app/api/carta_natal.py`.
 - **Infraestructura** — detalles externos reemplazables: cliente de Anthropic, geocodificación (Nominatim), persistencia (SQLAlchemy/SQLite), renderizado (WeasyPrint), efemérides (Swiss Ephemeris).
 - **Interfaz** — HTTP: routers de FastAPI, serialización de request/response. Es la capa más externa.
@@ -66,7 +66,7 @@ app/core/*       → config, engine de DB, primitivas transversales
 
 Nunca al revés: un servicio no importa nada de `app/api/`; `app/core/` no conoce nada de `app/services/`. Esto ya se respeta hoy — mantenerlo cuesta menos que restaurarlo después.
 
-El límite dominio/infraestructura todavía no es explícito en el árbol de carpetas (no hay `app/domain/` ni `app/infrastructure/` separados). Hoy `app/services/` mezcla ambas cosas: lógica de dominio pura sin efectos secundarios (`dignidades_service.py`, `aspectos_service.py`, `regentes_service.py`, gran parte de `astro_service.py`) con infraestructura (llamadas HTTP a Anthropic/Nominatim, acceso a SQLAlchemy en `persistence_service.py`). No crear carpetas nuevas por prurito — pero si una tarea agrega responsabilidades nuevas a un servicio que ya mezcla ambas cosas, ese es el momento de separarlas, no antes.
+El límite dominio/infraestructura ya es explícito para una parte del árbol (Horizonte 3, en progreso): `app/domain/` contiene la lógica de dominio pura sin efectos secundarios que ya se extrajo (`aspectos_service.py`, `dignidades_service.py`, `regentes_service.py`, `resumen_deterministico_service.py`). Todavía no existe `app/infrastructure/` — `app/services/` sigue mezclando dominio parcial (gran parte de `astro_service.py`) con infraestructura (llamadas HTTP a Anthropic/Nominatim, acceso a SQLAlchemy en `persistence_service.py`, WeasyPrint en `pdf_service.py`). No crear carpetas nuevas por prurito — pero si una tarea agrega responsabilidades nuevas a un servicio que ya mezcla ambas cosas, ese es el momento de separarlas, no antes.
 
 ### 2. Responsabilidad única, en la práctica
 
@@ -152,8 +152,8 @@ Esta sección describe cómo funciona el sistema hoy — es el mapa, no el crite
 1. `geocoding_service.geocodificar_ciudad` — ciudad/país → lat/lon (Nominatim, rate-limited a 1 req/s, lanza `ValueError` si falla).
 2. `time_service.calcular_hora_utc` — hora local de nacimiento → UTC usando el huso horario histórico real de esas coordenadas (`timezonefinder` + `zoneinfo`), luego `calcular_dia_juliano` para Swiss Ephemeris.
 3. `astro_service.calcular_casas` / `calcular_posiciones_planetarias` — casas (Placidus) y posiciones planetarias vía `pyswisseph`. Los archivos de efemérides viven en `ephe/`.
-4. `aspectos_service.calcular_todos_los_aspectos` — aspectos mayores entre todos los puntos.
-5. `dignidades_service.calcular_dignidades_de_carta` / `calcular_elementos_y_modalidades` — dignidades esenciales, balance de elemento/modalidad.
+4. `domain.aspectos_service.calcular_todos_los_aspectos` — aspectos mayores entre todos los puntos.
+5. `domain.dignidades_service.calcular_dignidades_de_carta` / `calcular_elementos_y_modalidades` — dignidades esenciales, balance de elemento/modalidad.
 
 Las tablas de referencia astrológica (códigos de planetas, signos, dispositores, dignidades, elementos/modalidades) son constantes en `app/core/config.py`, no viven en los servicios.
 
@@ -162,7 +162,7 @@ Las tablas de referencia astrológica (códigos de planetas, signos, dispositore
 **Integración con Claude** (`app/services/interpretation_common.py` + un `interpretation_*.py` por caso de uso): 5 llamadas independientes, cada una con su propio system prompt, schema Pydantic y propósito:
 - `interpretation_carta_completa.interpretar_carta_completa` — interpretación premium completa (una sola llamada para que la narrativa pueda tejer conexiones entre puntos de la carta).
 - `interpretation_resumen_gratuito.interpretar_resumen_gratuito` — teaser gratuito, deliberadamente superficial (solo Big Three), llamada separada de la interpretación completa.
-- `interpretation_areas_de_vida.interpretar_areas_de_vida` — 2da llamada premium: vocación/dinero/amor/herida (Quirón)/plan de acción/brújula. Usa `regentes_service.calcular_regentes_de_casas` para poder interpretar casas vacías a través de su regente.
+- `interpretation_areas_de_vida.interpretar_areas_de_vida` — 2da llamada premium: vocación/dinero/amor/herida (Quirón)/plan de acción/brújula. Usa `domain.regentes_service.calcular_regentes_de_casas` para poder interpretar casas vacías a través de su regente.
 - `interpretation_transitos.interpretar_transitos` — 3ra llamada premium: tránsitos actuales vs. carta natal, foto fija tomada en el momento de aprobación, nunca se actualiza sola.
 - `interpretation_horoscopos.generar_horoscopos` — horóscopos genéricos diarios/semanales para los 12 signos, usa Haiku (más barato, contenido no personalizado) en vez de Sonnet.
 

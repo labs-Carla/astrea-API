@@ -7,7 +7,10 @@ from app.services.regentes_service import calcular_regentes_de_casas
 
 
 
-client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+# Cliente por defecto para los call sites existentes. Cada funcion de este
+# modulo acepta `client` como parametro (con este singleton como default)
+# para poder inyectar un cliente mockeado en tests sin llamar a la API real.
+_client_default = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 SYSTEM_PROMPT = """Eres un astrólogo profesional experimentado, con un enfoque psicológico moderno.
 Interpretas cartas natales completas como quien narra una historia coherente, no como una lista de
@@ -148,7 +151,9 @@ def _limpiar_json_markdown(texto: str) -> str:
         texto = "\n".join(lineas)
     return texto.strip()
 
-async def interpretar_carta_completa(calculo: dict, genero: str | None = None) -> dict:
+async def interpretar_carta_completa(
+    calculo: dict, genero: str | None = None, client: AsyncAnthropic = _client_default
+) -> dict:
     """
     Genera la interpretación narrativa completa de la carta natal usando Claude,
     en una sola llamada para permitir que el texto teja conexiones entre puntos.
@@ -224,7 +229,7 @@ Devuelve un JSON con exactamente esta forma:
     return "\n".join(lineas)
 
 
-async def interpretar_resumen_gratuito(calculo: dict) -> dict:
+async def interpretar_resumen_gratuito(calculo: dict, client: AsyncAnthropic = _client_default) -> dict:
     """
     Genera el resumen gratuito (teaser) de la carta natal, con su propia
     llamada a Claude, independiente y más liviana que interpretar_carta_completa.
@@ -362,7 +367,9 @@ Devuelve un JSON con exactamente esta forma:
 
     return "\n".join(lineas)
 
-async def interpretar_areas_de_vida(calculo: dict, genero: str | None = None) -> dict:
+async def interpretar_areas_de_vida(
+    calculo: dict, genero: str | None = None, client: AsyncAnthropic = _client_default
+) -> dict:
     """
     Genera la segunda parte del reporte premium: vocacion, dinero, amor,
     herida y don (Quiron), interpretacion de los aspectos mas relevantes,
@@ -458,7 +465,9 @@ Devuelve un JSON con exactamente esta forma:
     return "\n".join(lineas)
 
 
-async def interpretar_transitos(calculo_natal: dict, transitos: dict, genero: str | None = None) -> dict:
+async def interpretar_transitos(
+    calculo_natal: dict, transitos: dict, genero: str | None = None, client: AsyncAnthropic = _client_default
+) -> dict:
     """
     Genera la tercera parte del reporte premium: clima energetico actual
     (transitos de hoy vs carta natal) y proyeccion de los proximos 3-6 meses.
@@ -532,7 +541,9 @@ Devuelve un JSON con exactamente esta forma:
     return "\n".join(lineas)
 
 
-async def generar_horoscopos(transitos_por_signo: dict, cadencia: str) -> dict:
+async def generar_horoscopos(
+    transitos_por_signo: dict, cadencia: str, client: AsyncAnthropic = _client_default
+) -> dict:
     """
     Genera los horoscopos genericos (diario o semanal) para los 12 signos,
     usando Haiku (contenido corto, no personalizado, no requiere el modelo

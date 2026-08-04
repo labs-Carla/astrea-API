@@ -91,7 +91,7 @@ Es migración incremental real: cada endpoint agregado en su propio archivo redu
 
 ### 4. Inversión de dependencias donde habilita testing
 
-`interpretation_service.py` instancia `AsyncAnthropic` como singleton a nivel de módulo (línea 10). Esto acopla la lógica de negocio directamente al SDK y hace imposible testear construcción de prompts o parseo de respuestas sin llamar a la API real. No hace falta resolverlo preventivamente — pero si una tarea toca esta zona (nuevo prompt, cambio de modelo, primer test), inyectar el cliente como parámetro en vez de leerlo del scope del módulo es la dirección correcta.
+`interpretation_service.py` acepta `client: AsyncAnthropic` como parámetro en cada una de sus 5 funciones públicas (`interpretar_carta_completa`, `interpretar_resumen_gratuito`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`), con `_client_default` (el singleton de módulo) como valor por defecto — así los call sites existentes en `endpoints.py` no cambian, pero los tests pueden inyectar un doble sin llamar a la API real (ver `tests/test_interpretation_service.py`). Si una tarea agrega una 6ª llamada a Claude, seguir el mismo patrón.
 
 `persistence_service.py` ya sigue el patrón correcto (recibe `db: Session` por parámetro en cada función) — es el ejemplo a imitar en el resto del código.
 
@@ -127,8 +127,14 @@ El proyecto tiene deuda técnica identificada y priorizada — god-files (`endpo
 # Levantar el server en dev (con reload)
 uvicorn app.main:app --reload
 
-# Instalar dependencias
+# Instalar dependencias (produccion)
 pip install -r requirements.txt
+
+# Instalar dependencias de desarrollo (incluye pytest, sobre requirements.txt)
+pip install -r requirements-dev.txt
+
+# Correr la suite de tests
+pytest
 
 # Migraciones de DB (SQLite, archivo ./astrea.db en local)
 alembic revision --autogenerate -m "descripcion"
@@ -139,7 +145,7 @@ docker build -t astrea-api .
 docker run -p 8000:8000 astrea-api
 ```
 
-No hay suite de tests ni tooling de lint/format configurado en el repo — no inventes comandos para ninguno de los dos. Si una tarea introduce el primer test, ver el ítem correspondiente en la tabla de deuda técnica.
+Hay una suite de tests (`pytest`, `pytest-asyncio`) en `tests/`, en construcción incremental como parte del Horizonte 1 de `ROADMAP.md` — no asumas cobertura donde no la hay, pero sí usa `pytest` como comando real. No hay tooling de lint/format configurado en el repo — no inventes comandos para eso.
 
 Los commits son en español, estilo `tipo: descripcion` (`feat:`, `fix:`), consistente con `git log`.
 

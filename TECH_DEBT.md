@@ -20,12 +20,12 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 6 | ~~Cero tests en el repo~~ | Testing | **Resuelto** (cobertura inicial) |
 | 7 | ~~`Base.metadata.create_all()` y Alembic coexisten sin una única fuente de verdad de schema~~ | Datos | **Resuelto** |
 | 8 | ~~`requirements.txt` sin versión pinneada en la mayoría de las dependencias~~ | Operación | **Resuelto** |
-| 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
+| 9 | ~~Dockerfile corre como root, sin usuario no-privilegiado~~ | Seguridad | **Resuelto** |
 | 10 | ~~Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py`~~ | Mantenibilidad | **Resuelto** |
 | 11 | ~~Código muerto versionado en la raíz del repo~~ | Housekeeping | **Resuelto** |
 | 12 | ~~`app/core/config.py` mezcla `Settings` de entorno con constantes astrológicas de dominio~~ | Arquitectura | **Resuelto** |
 | 13 | Coincidencia de carta existente por igualdad exacta de floats (lat/lon) | Datos | Baja |
-| 14 | `print()` de debug en código productivo (`astro_service.py`) | Housekeeping | Baja |
+| 14 | ~~`print()` de debug en código productivo (`astro_service.py`)~~ | Housekeeping | **Resuelto** |
 | 15 | Copia de base de datos de producción en el entorno de desarrollo local | Datos / privacidad | Baja (operativo) |
 
 ---
@@ -78,12 +78,9 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Dónde:** `requirements.txt` y `requirements-dev.txt`, las 15 + 2 dependencias ahora pinneadas a la versión del entorno que ya funciona (via `pip freeze`). Verificado instalando desde cero en un venv limpio y confirmando que la app importa sin errores.
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 9. Dockerfile corre como root
+### 9. Dockerfile corre como root — Resuelto
 
-- **Dónde:** `Dockerfile` — no hay directiva `USER`, el proceso corre como root dentro del contenedor.
-- **Impacto:** endurecimiento estándar de contenedores; si el proceso se compromete, el atacante tiene privilegios de root dentro del contenedor (que en la mayoría de los setups modernos igual está aislado del host, pero es una capa de defensa que falta gratis).
-- **Prioridad:** Media.
-- **Esfuerzo:** bajo — agregar un usuario no-root y `USER` al final del Dockerfile.
+- **Dónde:** `Dockerfile` crea `appuser` (`useradd`), le da ownership de `/app` y agrega `USER appuser` antes del `CMD`. No se pudo correr `docker build` localmente en esta sesión (Docker no disponible en este entorno) — pendiente de confirmar en el job `docker-build` de CI.
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 10. Bloques de instrucción de género duplicados — Resuelto
@@ -109,11 +106,9 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Esfuerzo:** bajo si se decide atacarlo (redondear lat/lon a N decimales antes de guardar/comparar).
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 14. `print()` de debug en código productivo
+### 14. `print()` de debug en código productivo — Resuelto
 
-- **Dónde:** `app/services/astro_service.py`, línea 7 (`print(f"[DEBUG] Ruta ephemeris configurada: {_RUTA_EPHE}")`).
-- **Prioridad:** Baja.
-- **Esfuerzo:** trivial.
+- **Dónde:** `app/services/astro_service.py` usa `logging.getLogger(__name__).debug(...)` en vez de `print()`. No hay más `print()` en `app/` (verificado con grep).
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 15. Copia de base de datos de producción en desarrollo local
@@ -186,9 +181,9 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 - [x] Resolver la coexistencia de `create_all()` y Alembic (#7) — `main.py` deja de crear tablas, el setup de cualquier entorno pasa siempre por `alembic upgrade head` (el propio `Dockerfile` ya lo corre antes de arrancar `uvicorn`).
 - [x] Pinnear versiones en `requirements.txt` (#8).
-- [ ] Agregar usuario no-root al Dockerfile (#9).
+- [x] Agregar usuario no-root al Dockerfile (#9).
 - [ ] Correr la suite de tests (Fase 1) en el pipeline de CI ya existente (`.github/workflows/ci.yml`, hoy solo corre smoke test + build de Docker).
-- [ ] Reemplazar el `print()` de debug en `astro_service.py` por logging real (#14).
+- [x] Reemplazar el `print()` de debug en `astro_service.py` por logging real (#14).
 
 **Depende de:** nada estructuralmente, pero tiene más sentido una vez que hay tests (Fase 1) que un CI pueda correr.
 

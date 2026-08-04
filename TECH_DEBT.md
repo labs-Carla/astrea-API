@@ -17,7 +17,7 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 3 | `app/api/endpoints.py` — 591 líneas, todas las rutas del proyecto en un archivo | Arquitectura | Alta |
 | 4 | `app/services/interpretation_service.py` — 563 líneas, 4 responsabilidades mezcladas | Arquitectura | Alta |
 | 5 | ~~`AsyncAnthropic` como singleton de módulo, sin inyección de dependencias~~ | Testabilidad | **Resuelto** |
-| 6 | Cero tests en el repo | Testing | Media (en progreso) |
+| 6 | ~~Cero tests en el repo~~ | Testing | **Resuelto** (cobertura inicial) |
 | 7 | `Base.metadata.create_all()` y Alembic coexisten sin una única fuente de verdad de schema | Datos | Media |
 | 8 | `requirements.txt` sin versión pinneada en la mayoría de las dependencias | Operación | Media |
 | 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
@@ -69,12 +69,11 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Dónde:** `app/services/interpretation_service.py`. El singleton pasó a llamarse `_client_default`, y las 5 funciones públicas del módulo aceptan `client: AsyncAnthropic = _client_default` como parámetro — los call sites existentes en `endpoints.py` no cambiaron (siguen usando el default).
 - **¿Bloquea funcionalidades futuras?** No, ya no bloquea la Fase 1.
 
-### 6. Cero tests en el repo — En progreso
+### 6. Cero tests en el repo — Resuelto (cobertura inicial)
 
-- **Dónde:** `tests/` ya existe, con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`). 27 tests corriendo: `test_interpretation_service.py` (cliente Claude mockeado, 1 de los 5 casos de uso), `test_astro_service.py`, `test_aspectos_service.py`, `test_dignidades_service.py`, `test_regentes_service.py`, `test_resumen_deterministico_service.py` — cubren todas las funciones de dominio puro listadas en el plan de Fase 1.
-- **Impacto restante:** falta replicar el mock de Claude de `interpretar_resumen_gratuito` para los otros 4 casos de uso (`interpretar_carta_completa`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`), y no hay tests de integración de endpoints ni de `persistence_service.py`.
-- **Prioridad:** Media — sigue sin bloquear nada hoy, pero cuanta más cobertura exista antes del Horizonte 2 (split de god-files), más seguro es ese refactor.
-- **¿Bloquea funcionalidades futuras?** No bloquea directamente, pero sigue siendo prerrequisito para tocar los god-files (#3 y #4) con confianza.
+- **Dónde:** `tests/` con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`). 31 tests corriendo: `test_interpretation_service.py` cubre las 5 funciones públicas de `interpretation_service.py` con un cliente Claude mockeado (sin red), y `test_astro_service.py` / `test_aspectos_service.py` / `test_dignidades_service.py` / `test_regentes_service.py` / `test_resumen_deterministico_service.py` cubren todas las funciones de dominio puro del plan de Fase 1.
+- **Impacto restante:** no hay tests de integración de endpoints (`app/api/endpoints.py`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para cuando se aborde el Horizonte 2 (split de god-files) o si se agrega CI (Horizonte 4).
+- **¿Bloquea funcionalidades futuras?** No.
 
 ### 7. `Base.metadata.create_all()` y Alembic sin una única fuente de verdad
 
@@ -167,9 +166,9 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 - [x] Agregar `pytest` a un `requirements-dev.txt` separado y un comando en `CLAUDE.md`.
 - [x] Primer test de `interpretation_service.py` con cliente Claude mockeado (`tests/test_interpretation_service.py`).
 - [x] Primeros tests sobre funciones puras que ya están aisladas y no requieren mocks: `astro_service.calcular_casa_natural` / `obtener_signo`, `aspectos_service.detectar_aspecto` / `calcular_todos_los_aspectos`, `dignidades_service.calcular_dignidad`, `regentes_service.calcular_regentes_de_casas`, `resumen_deterministico_service.generar_resumen_deterministico`.
-- [ ] Replicar el mock de Claude para los 4 casos de uso restantes (`interpretar_carta_completa`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`).
+- [x] Replicar el mock de Claude para los 4 casos de uso restantes (`interpretar_carta_completa`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`).
 
-**Criterio de salida:** hay una suite de tests corriendo (aunque chica), y `interpretation_service.py` puede testearse con un cliente Claude mockeado. *(cumplido — quedan los ítems de cobertura arriba para profundizar antes de la Fase 2)*
+**Criterio de salida:** hay una suite de tests corriendo (aunque chica), y `interpretation_service.py` puede testearse con un cliente Claude mockeado. *(cumplido — Fase 1 completa)*
 
 **Depende de:** nada — puede empezar en paralelo a la Fase 0.
 

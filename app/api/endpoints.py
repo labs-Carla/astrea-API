@@ -138,7 +138,8 @@ async def generar_resumen_gratuito(request:Request, datos: DatosNacimiento, db: 
 
 
 @router.post("/carta-natal/html", response_class=HTMLResponse)
-def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def generar_carta_natal_html(request: Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
@@ -166,7 +167,8 @@ def generar_carta_natal_html(datos: DatosNacimiento, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/data")
-def generar_carta_natal_data(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def generar_carta_natal_data(request: Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
@@ -197,7 +199,8 @@ def generar_carta_natal_data(datos: DatosNacimiento, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/pdf")
-async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def generar_carta_natal_pdf(request: Request, datos: DatosNacimiento, db: Session = Depends(get_db)):
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
 
@@ -231,7 +234,8 @@ async def generar_carta_natal_pdf(datos: DatosNacimiento, db: Session = Depends(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/carta-natal/compra")
-async def procesar_compra(datos: DatosCompra, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def procesar_compra(request: Request, datos: DatosCompra, db: Session = Depends(get_db)):
     """
     Recibe los datos enviados desde gracias.html tras una compra en Hotmart.
     Calcula la carta astronomica (Swiss Ephemeris, sin IA) y guarda
@@ -369,7 +373,7 @@ def obtener_carta_por_token(token: str, db: Session = Depends(get_db)):
     return contexto
 
 
-@router.post("/test-interpretacion-completa")
+@router.post("/test-interpretacion-completa", dependencies=[Depends(verificar_admin_secret)])
 async def test_interpretacion_completa(datos: DatosNacimiento):
     latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
@@ -387,7 +391,7 @@ async def test_interpretacion_completa(datos: DatosNacimiento):
 
 
 
-@router.post("/test-aspectos")
+@router.post("/test-aspectos", dependencies=[Depends(verificar_admin_secret)])
 def test_aspectos(datos: DatosNacimiento):
     latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
@@ -444,7 +448,7 @@ async def generar_interpretacion_admin(
     return {"status": "generada", "mensaje": "Interpretacion generada correctamente."}
 
 
-@router.post("/test-dignidades-elementos")
+@router.post("/test-dignidades-elementos", dependencies=[Depends(verificar_admin_secret)])
 def test_dignidades_elementos(datos: DatosNacimiento):
     latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
     fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)

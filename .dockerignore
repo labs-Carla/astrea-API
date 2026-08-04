@@ -28,9 +28,3 @@ CLAUDE.md
 ROADMAP.md
 TECH_DEBT.md
 
-# HTML/scripts sueltos ya reemplazados por el flujo actual (ver TECH_DEBT.md #11),
-# no referenciados por app/. Se excluyen de la imagen aunque sigan versionados.
-vista_web.html
-reporte.html
-carta_preview.html
-borrar_cache.py

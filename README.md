@@ -194,5 +194,5 @@ alembic upgrade head
 
 ## 📝 Notas
 
-- No hay suite de tests ni linter configurado todavía.
+- Hay una suite de tests (`pytest`, ver `tests/`) — no hay linter configurado todavía.
 - El idioma de dominio de todo el proyecto (código, prompts, respuestas) es español latinoamericano neutro — mantené esa consistencia en cualquier contribución.

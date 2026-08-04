@@ -1,7 +1,7 @@
 """agrega resumen_json y hace interpretacion_json nullable
 
 Revision ID: ebe4e784d7ff
-Revises: 
+Revises: cd41b1f78898
 Create Date: 2026-07-16 12:28:19.791720
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'ebe4e784d7ff'
-down_revision: Union[str, Sequence[str], None] = None
+down_revision: Union[str, Sequence[str], None] = 'cd41b1f78898'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

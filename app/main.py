@@ -9,14 +9,14 @@ from app.api.carta_natal import router as carta_natal_router
 from app.api.admin import router as admin_router
 from app.api.horoscopos import router as horoscopos_router
 from app.api.dev_test import router as dev_test_router
-from app.core.database import Base, engine
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Crea las tablas en SQLite si no existen todavía (no borra datos existentes)
-Base.metadata.create_all(bind=engine)
-
+# El schema de la base de datos se gestiona exclusivamente via Alembic
+# ("alembic upgrade head", ver CLAUDE.md/README.md) -- ya no se crea
+# automaticamente aqui. Antes coexistian create_all() y Alembic sin una
+# unica fuente de verdad; ver TECH_DEBT.md #7.
 app = FastAPI(title=settings.app_name)
 
 # Registra el limiter (importado de app/core/limiter.py) en el estado de la

@@ -71,8 +71,8 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 
 ### 6. Cero tests en el repo — En progreso
 
-- **Dónde:** `tests/` ya existe, con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`). Primer test real: `tests/test_interpretation_service.py`, que inyecta un doble de `AsyncAnthropic` en `interpretar_resumen_gratuito` para probar construcción de prompt + parseo/validación sin llamar a la API.
-- **Impacto restante:** solo hay cobertura de un caso de uso de `interpretation_service.py`. Faltan los tests de funciones de dominio puro listados en el plan de Fase 1 (`astro_service`, `aspectos_service`, `dignidades_service`, `regentes_service`, `resumen_deterministico_service`), y replicar el mismo patrón de mock para los otros 4 casos de uso de Claude.
+- **Dónde:** `tests/` ya existe, con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`). 27 tests corriendo: `test_interpretation_service.py` (cliente Claude mockeado, 1 de los 5 casos de uso), `test_astro_service.py`, `test_aspectos_service.py`, `test_dignidades_service.py`, `test_regentes_service.py`, `test_resumen_deterministico_service.py` — cubren todas las funciones de dominio puro listadas en el plan de Fase 1.
+- **Impacto restante:** falta replicar el mock de Claude de `interpretar_resumen_gratuito` para los otros 4 casos de uso (`interpretar_carta_completa`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`), y no hay tests de integración de endpoints ni de `persistence_service.py`.
 - **Prioridad:** Media — sigue sin bloquear nada hoy, pero cuanta más cobertura exista antes del Horizonte 2 (split de god-files), más seguro es ese refactor.
 - **¿Bloquea funcionalidades futuras?** No bloquea directamente, pero sigue siendo prerrequisito para tocar los god-files (#3 y #4) con confianza.
 
@@ -166,7 +166,7 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 - [x] Inyectar `AsyncAnthropic` como parámetro en las funciones de `interpretation_service.py` (con el singleton actual como default, para no romper los call sites existentes).
 - [x] Agregar `pytest` a un `requirements-dev.txt` separado y un comando en `CLAUDE.md`.
 - [x] Primer test de `interpretation_service.py` con cliente Claude mockeado (`tests/test_interpretation_service.py`).
-- [ ] Primeros tests sobre funciones puras que ya están aisladas y no requieren mocks: `astro_service.calcular_casa_natural` / `obtener_signo`, `aspectos_service.detectar_aspecto` / `calcular_todos_los_aspectos`, `dignidades_service.calcular_dignidad`, `regentes_service.calcular_regentes_de_casas`, `resumen_deterministico_service.generar_resumen_deterministico`.
+- [x] Primeros tests sobre funciones puras que ya están aisladas y no requieren mocks: `astro_service.calcular_casa_natural` / `obtener_signo`, `aspectos_service.detectar_aspecto` / `calcular_todos_los_aspectos`, `dignidades_service.calcular_dignidad`, `regentes_service.calcular_regentes_de_casas`, `resumen_deterministico_service.generar_resumen_deterministico`.
 - [ ] Replicar el mock de Claude para los 4 casos de uso restantes (`interpretar_carta_completa`, `interpretar_areas_de_vida`, `interpretar_transitos`, `generar_horoscopos`).
 
 **Criterio de salida:** hay una suite de tests corriendo (aunque chica), y `interpretation_service.py` puede testearse con un cliente Claude mockeado. *(cumplido — quedan los ítems de cobertura arriba para profundizar antes de la Fase 2)*

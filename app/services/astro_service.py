@@ -1,10 +1,13 @@
 import swisseph as swe
 import os
+import logging
 from app.domain.astro_constants import PLANETAS, SIGNOS
+
+logger = logging.getLogger(__name__)
 
 _RUTA_EPHE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ephe"))
 swe.set_ephe_path(_RUTA_EPHE)
-print(f"[DEBUG] Ruta ephemeris configurada: {_RUTA_EPHE}")
+logger.debug("Ruta ephemeris configurada: %s", _RUTA_EPHE)
 
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED
 

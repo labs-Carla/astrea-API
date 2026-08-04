@@ -18,14 +18,14 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 | 4 | ~~`app/services/interpretation_service.py` — 563 líneas, 4 responsabilidades mezcladas~~ | Arquitectura | **Resuelto** |
 | 5 | ~~`AsyncAnthropic` como singleton de módulo, sin inyección de dependencias~~ | Testabilidad | **Resuelto** |
 | 6 | ~~Cero tests en el repo~~ | Testing | **Resuelto** (cobertura inicial) |
-| 7 | `Base.metadata.create_all()` y Alembic coexisten sin una única fuente de verdad de schema | Datos | Media |
-| 8 | `requirements.txt` sin versión pinneada en la mayoría de las dependencias | Operación | Media |
-| 9 | Dockerfile corre como root, sin usuario no-privilegiado | Seguridad | Media |
+| 7 | ~~`Base.metadata.create_all()` y Alembic coexisten sin una única fuente de verdad de schema~~ | Datos | **Resuelto** |
+| 8 | ~~`requirements.txt` sin versión pinneada en la mayoría de las dependencias~~ | Operación | **Resuelto** |
+| 9 | ~~Dockerfile corre como root, sin usuario no-privilegiado~~ | Seguridad | **Resuelto** |
 | 10 | ~~Bloques de instrucción de género duplicados 3 veces en `interpretation_service.py`~~ | Mantenibilidad | **Resuelto** |
 | 11 | ~~Código muerto versionado en la raíz del repo~~ | Housekeeping | **Resuelto** |
 | 12 | ~~`app/core/config.py` mezcla `Settings` de entorno con constantes astrológicas de dominio~~ | Arquitectura | **Resuelto** |
 | 13 | Coincidencia de carta existente por igualdad exacta de floats (lat/lon) | Datos | Baja |
-| 14 | `print()` de debug en código productivo (`astro_service.py`) | Housekeeping | Baja |
+| 14 | ~~`print()` de debug en código productivo (`astro_service.py`)~~ | Housekeeping | **Resuelto** |
 | 15 | Copia de base de datos de producción en el entorno de desarrollo local | Datos / privacidad | Baja (operativo) |
 
 ---
@@ -63,31 +63,24 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 ### 6. Cero tests en el repo — Resuelto (cobertura inicial)
 
 - **Dónde:** `tests/` con `pytest` + `pytest-asyncio` en `requirements-dev.txt` y `pytest.ini` (`asyncio_mode = auto`, `testpaths = tests`). 31 tests corriendo: `test_interpretation_service.py` cubre las 5 funciones públicas repartidas en `interpretation_*.py` con un cliente Claude mockeado (sin red), y `test_astro_service.py` / `test_aspectos_service.py` / `test_dignidades_service.py` / `test_regentes_service.py` / `test_resumen_deterministico_service.py` cubren todas las funciones de dominio puro del plan de Fase 1.
-- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `persistence_service.py` — quedan fuera del alcance de Fase 1, son candidatos naturales para si se agrega CI (Horizonte 4).
+- **Impacto restante:** no hay tests de integración de endpoints (`app/api/`) ni de `infrastructure/persistence_service.py` — quedan fuera del alcance de Fase 1. La suite ya corre en CI (job `unit-tests`, ver Fase 4).
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 7. `Base.metadata.create_all()` y Alembic sin una única fuente de verdad
+### 7. `Base.metadata.create_all()` y Alembic sin una única fuente de verdad — Resuelto
 
-- **Dónde:** `app/main.py` línea 15 (`Base.metadata.create_all(bind=engine)`, ejecutado en cada arranque) conviviendo con `alembic/` como sistema de migraciones versionado.
-- **Impacto:** en un entorno completamente nuevo (clon local nuevo, disaster recovery, o un futuro segundo entorno), levantar la app por primera vez crea automáticamente **todas** las columnas actuales del modelo (porque `db_models.py` ya las declara todas). Si después se corre `alembic upgrade head` sobre esa misma base, las migraciones que agregan columnas (`add_column`) fallarán porque esas columnas ya existen — los dos mecanismos de creación de schema no son compatibles entre sí en un arranque desde cero. Hoy "funciona" solo porque la base de datos de cada entorno ya existía antes de que se agregaran las migraciones más recientes.
-- **Prioridad:** Media — no afecta el día a día actual, pero es una trampa real para el próximo setup desde cero (nuevo desarrollador, nuevo entorno, recuperación ante desastre).
-- **Esfuerzo:** bajo — decidir una única fuente de verdad (recomendado: quitar `create_all()` de `main.py` y depender solo de `alembic upgrade head` como paso de deploy/setup).
-- **¿Bloquea funcionalidades futuras?** No bloquea features, pero sí bloquea un onboarding u disaster recovery confiables.
+- **Dónde:** `app/main.py` ya no llama a `create_all()`. `Dockerfile` corre `alembic upgrade head` antes de levantar `uvicorn` en cada arranque del contenedor, para que el schema se gestione exclusivamente vía Alembic también en producción.
+- **Hallazgo real, más grave que lo documentado originalmente:** al probar `alembic upgrade head` contra una base de datos vacía (sin `create_all()` corriendo antes), la migración raíz de la cadena (`ebe4e784d7ff`) fallaba con `NoSuchTableError` — no agregaba columnas a una tabla ya creada por Alembic, sino que asumía que `cartas_natales` ya existía (fue escrita cuando la tabla ya existía en producción vía `create_all()`, y esa creación inicial nunca quedó capturada como migración). Es decir: Alembic por sí solo nunca pudo levantar un entorno desde cero, no solo que "competía" con `create_all()`.
+- **Fix:** se agregó la migración faltante `cd41b1f78898` (`crea tabla cartas natales base`) al inicio de la cadena, con el schema exacto que tenía la tabla antes de `ebe4e784d7ff` (verificado contra `astrea_prod_copy.db`, una copia de producción de esa época). Verificado programáticamente que `alembic upgrade head` contra una DB nueva reproduce el mismo schema (columnas, tipos, nullability, índices) que `Base.metadata.create_all()` — con una sola diferencia real donde Alembic es más correcto: `enviado` tiene `DEFAULT 0` a nivel de base de datos (así está en la `astrea.db` real), algo que un `create_all()` fresco con el modelo actual no aplica.
+- **¿Bloquea funcionalidades futuras?** No bloquea features, pero destraba onboarding y disaster recovery confiables.
 
-### 8. `requirements.txt` sin versiones pinneadas
+### 8. `requirements.txt` sin versiones pinneadas — Resuelto
 
-- **Dónde:** `requirements.txt`. Pinneados: `weasyprint==69.0`, `alembic==1.18.5`, `email-validator==2.3.0`. Sin pinnear: `fastapi`, `uvicorn`, `pyswisseph`, `pydantic`, `pydantic-settings`, `timezonefinder`, `jinja2`, `anthropic`, `sqlalchemy`, `geopy`, `python-dotenv`, `slowapi`.
-- **Impacto:** un `pip install -r requirements.txt` en una fecha distinta puede traer una versión mayor con breaking changes (particularmente riesgoso en `fastapi`, `pydantic` y `anthropic`, que cambian API con frecuencia) sin ningún control ni aviso.
-- **Prioridad:** Media.
-- **Esfuerzo:** bajo — correr `pip freeze` sobre el entorno que ya funciona y fijar versiones, o migrar a un lockfile (`pip-tools`, `poetry`, `uv`) si se quiere ir más allá de pinning simple.
-- **¿Bloquea funcionalidades futuras?** No, pero es la causa más probable de un build roto "sin que nadie haya tocado nada".
+- **Dónde:** `requirements.txt` y `requirements-dev.txt`, las 15 + 2 dependencias ahora pinneadas a la versión del entorno que ya funciona (via `pip freeze`). Verificado instalando desde cero en un venv limpio y confirmando que la app importa sin errores.
+- **¿Bloquea funcionalidades futuras?** No.
 
-### 9. Dockerfile corre como root
+### 9. Dockerfile corre como root — Resuelto
 
-- **Dónde:** `Dockerfile` — no hay directiva `USER`, el proceso corre como root dentro del contenedor.
-- **Impacto:** endurecimiento estándar de contenedores; si el proceso se compromete, el atacante tiene privilegios de root dentro del contenedor (que en la mayoría de los setups modernos igual está aislado del host, pero es una capa de defensa que falta gratis).
-- **Prioridad:** Media.
-- **Esfuerzo:** bajo — agregar un usuario no-root y `USER` al final del Dockerfile.
+- **Dónde:** `Dockerfile` crea `appuser` (`useradd`), le da ownership de `/app` y agrega `USER appuser` antes del `CMD`. No se pudo correr `docker build` localmente en esta sesión (Docker no disponible en este entorno) — pendiente de confirmar en el job `docker-build` de CI.
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 10. Bloques de instrucción de género duplicados — Resuelto
@@ -113,11 +106,9 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 - **Esfuerzo:** bajo si se decide atacarlo (redondear lat/lon a N decimales antes de guardar/comparar).
 - **¿Bloquea funcionalidades futuras?** No.
 
-### 14. `print()` de debug en código productivo
+### 14. `print()` de debug en código productivo — Resuelto
 
-- **Dónde:** `app/services/astro_service.py`, línea 7 (`print(f"[DEBUG] Ruta ephemeris configurada: {_RUTA_EPHE}")`).
-- **Prioridad:** Baja.
-- **Esfuerzo:** trivial.
+- **Dónde:** `app/services/astro_service.py` usa `logging.getLogger(__name__).debug(...)` en vez de `print()`. No hay más `print()` en `app/` (verificado con grep).
 - **¿Bloquea funcionalidades futuras?** No.
 
 ### 15. Copia de base de datos de producción en desarrollo local
@@ -184,14 +175,15 @@ Coherente con "Objetivo arquitectónico del proyecto" y "Forma de trabajar" en `
 
 **Depende de:** Fase 2 (mover código ya dividido por responsabilidad es mucho más simple que mover un god-file).
 
-### Fase 4 — Consolidación operativa
+### Fase 4 — Consolidación operativa — En progreso
 
 **Objetivo:** cerrar los hallazgos de infraestructura/operación que no son arquitectónicos pero sí necesarios para el "nivel profesional" mencionado en el objetivo del proyecto.
 
-- Pinnear versiones en `requirements.txt` (#8) o migrar a un lockfile.
-- Agregar usuario no-root al Dockerfile (#9).
-- Resolver la coexistencia de `create_all()` y Alembic (#7) — recomendado: `main.py` deja de crear tablas, el setup de cualquier entorno pasa siempre por `alembic upgrade head`.
-- Si se decide adoptar CI, este es el punto natural para agregarlo (correr la suite de tests de la Fase 1-2 en cada PR).
+- [x] Resolver la coexistencia de `create_all()` y Alembic (#7) — `main.py` deja de crear tablas, el setup de cualquier entorno pasa siempre por `alembic upgrade head` (el propio `Dockerfile` ya lo corre antes de arrancar `uvicorn`).
+- [x] Pinnear versiones en `requirements.txt` (#8).
+- [x] Agregar usuario no-root al Dockerfile (#9).
+- [x] Correr la suite de tests (Fase 1) en el pipeline de CI ya existente (`.github/workflows/ci.yml`): nuevo job `unit-tests` corre `pytest`, además de los ya existentes `app-smoke-test` (que ahora corre `alembic upgrade head` antes del boot check, ver #7) y `docker-build`.
+- [x] Reemplazar el `print()` de debug en `astro_service.py` por logging real (#14).
 
 **Depende de:** nada estructuralmente, pero tiene más sentido una vez que hay tests (Fase 1) que un CI pueda correr.
 

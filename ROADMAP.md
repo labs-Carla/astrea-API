@@ -126,7 +126,7 @@ Esto no es arbitrario: un sistema inseguro pone en riesgo el negocio antes que c
 **Definition of Done.**
 - Existe un paquete de dominio (cálculo astrológico puro, reglas del funnel de una carta) que no importa nada de FastAPI, SQLAlchemy ni del SDK de Anthropic.
 - Existe un paquete de infraestructura que concentra los detalles externos reemplazables (Anthropic, Nominatim, SQLAlchemy, WeasyPrint, Swiss Ephemeris).
-- Los servicios de aplicación que quedan son orquestadores finos que llaman a dominio e infraestructura, no el lugar donde vive la lógica de negocio.
+- Los servicios de aplicación que quedan son orquestadores finos que llaman a dominio e infraestructura, no el lugar donde vive la lógica de negocio. *(cumplido — ver TECH_DEBT.md Fase 3; queda pendiente, deliberadamente diferido por YAGNI, separar el cliente de Anthropic de la construcción de prompt en `interpretation_*.py`)*
 - `app/core/config.py` separa configuración de entorno de constantes de dominio.
 
 **Riesgos.** Sobre-diseñar la separación antes de tiempo: crear interfaces o capas vacías sin una segunda implementación real que las justifique. Mitigación: aplicar el mismo criterio YAGNI de `CLAUDE.md` — mover código real que ya existe, no construir estructura especulativa para un futuro hipotético.

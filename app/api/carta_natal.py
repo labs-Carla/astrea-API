@@ -6,14 +6,11 @@ from sqlalchemy.orm import Session
 from app.core.limiter import limiter
 from app.core.database import get_db
 from app.models.schemas import DatosNacimiento, DatosCompra
-from app.services.time_service import calcular_hora_utc, calcular_dia_juliano
-from app.services.astro_service import calcular_casas, calcular_posiciones_planetarias
+from app.services.calculo_carta_service import calcular_todo
 from app.services.report_service import generar_html_reporte, construir_contexto
 from app.infrastructure.pdf_service import generar_pdf_desde_html
 from app.services.interpretation_carta_completa import interpretar_carta_completa
 from app.domain.resumen_deterministico_service import generar_resumen_deterministico
-from app.domain.aspectos_service import calcular_todos_los_aspectos
-from app.domain.dignidades_service import calcular_dignidades_de_carta, calcular_elementos_y_modalidades
 from app.infrastructure.geocoding_service import geocodificar_ciudad
 from app.infrastructure.persistence_service import (
     buscar_carta_existente,
@@ -28,44 +25,6 @@ from app.infrastructure.persistence_service import (
 )
 
 router = APIRouter()
-
-
-def _calcular_todo(datos: DatosNacimiento, latitud: float, longitud: float) -> dict:
-    """
-    Ejecuta el cálculo astronómico completo (posiciones, casas, aspectos,
-    dignidades, elementos) a partir de coordenadas ya geocodificadas.
-    Centraliza esta lógica para no repetirla entre /resumen y /pdf.
-    """
-    fecha_utc = calcular_hora_utc(datos.fecha_hora_local, latitud, longitud)
-    dia_juliano = calcular_dia_juliano(fecha_utc)
-
-    resultado_casas = calcular_casas(dia_juliano, latitud, longitud)
-    posiciones = calcular_posiciones_planetarias(
-        dia_juliano, latitud, resultado_casas["_armc"]
-    )
-
-    puntos_para_aspectos = {
-        nombre: p["longitud_absoluta"] for nombre, p in posiciones.items()
-    }
-    puntos_para_aspectos["Ascendente"] = resultado_casas["puntos_angulares"]["Ascendente"]["longitud_absoluta"]
-    puntos_para_aspectos["MedioCielo"] = resultado_casas["puntos_angulares"]["MedioCielo"]["longitud_absoluta"]
-
-    aspectos = calcular_todos_los_aspectos(puntos_para_aspectos)
-    dignidades = calcular_dignidades_de_carta(posiciones)
-    elementos_y_modalidades = calcular_elementos_y_modalidades(posiciones)
-
-    return {
-        "fecha_utc": fecha_utc,
-        "calculo": {
-            "planetas": posiciones,
-            "casas": resultado_casas["casas"],
-            "puntos_angulares": resultado_casas["puntos_angulares"],
-            "aspectos": aspectos,
-            "dignidades": dignidades,
-            "elementos_y_modalidades": elementos_y_modalidades,
-            "fecha_hora_utc": fecha_utc.isoformat(),
-        },
-    }
 
 
 def _metadata_base(datos: DatosNacimiento, latitud: float, longitud: float, fecha_hora_utc: str) -> dict:
@@ -97,7 +56,7 @@ async def generar_resumen_gratuito(request: Request, datos: DatosNacimiento, db:
                 carta_existente.resumen_json = json.dumps(resumen)
                 db.commit()
         else:
-            resultado = _calcular_todo(datos, latitud, longitud)
+            resultado = calcular_todo(datos, latitud, longitud)
             calculo = resultado["calculo"]
             resumen = generar_resumen_deterministico(calculo)
             guardar_resumen(db, datos.fecha_hora_local, latitud, longitud, calculo, resumen)
@@ -193,7 +152,7 @@ async def generar_carta_natal_pdf(request: Request, datos: DatosNacimiento, db: 
                 interpretacion = await interpretar_carta_completa(calculo)
                 carta_existente = actualizar_con_interpretacion(db, carta_existente, interpretacion)
         else:
-            resultado = _calcular_todo(datos, latitud, longitud)
+            resultado = calcular_todo(datos, latitud, longitud)
             calculo = resultado["calculo"]
             interpretacion = await interpretar_carta_completa(calculo)
             guardar_carta_completa(db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion)
@@ -230,7 +189,7 @@ async def procesar_compra(request: Request, datos: DatosCompra, db: Session = De
         if carta_existente is not None:
             carta_existente = actualizar_datos_compra(db, carta_existente, datos.nombre, datos.email)
         else:
-            resultado = _calcular_todo(datos, latitud, longitud)
+            resultado = calcular_todo(datos, latitud, longitud)
             calculo = resultado["calculo"]
             guardar_carta_completa(
                 db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion=None,

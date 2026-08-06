@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,12 +20,17 @@ COPY . .
 # Corre como usuario no privilegiado en vez de root -- endurecimiento
 # estandar de contenedores (ver TECH_DEBT.md #9). chown despues del COPY
 # para que appuser pueda escribir el sqlite local (./astrea.db) si
-# DATABASE_URL no apunta a un volumen externo.
+# DATABASE_URL no apunta a un volumen externo. NO hay USER acá: el
+# contenedor arranca como root para que docker-entrypoint.sh pueda
+# corregir el ownership del volumen persistente de Railway (montado en
+# runtime, ver TECH_DEBT.md #9) antes de bajar privilegios con gosu.
 RUN useradd --create-home --shell /bin/bash appuser \
-    && chown -R appuser:appuser /app
-USER appuser
+    && chown -R appuser:appuser /app \
+    && chmod +x docker-entrypoint.sh
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # alembic upgrade head corre en cada arranque del contenedor -- es la unica
 # fuente de verdad del schema (main.py ya no llama a create_all(), ver
 # TECH_DEBT.md #7). Sin esto, un deploy nuevo levantaria con la DB vacia.
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

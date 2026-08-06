@@ -82,8 +82,9 @@ Auditoría completa de astrea-API y plan de migración incremental hacia el obje
 
 ### 9. Dockerfile corre como root — Resuelto
 
-- **Dónde:** `Dockerfile` crea `appuser` (`useradd`), le da ownership de `/app` y agrega `USER appuser` antes del `CMD`. No se pudo correr `docker build` localmente en esta sesión (Docker no disponible en este entorno) — pendiente de confirmar en el job `docker-build` de CI.
+- **Dónde:** `Dockerfile` crea `appuser` (`useradd`), le da ownership de `/app`, y usa `docker-entrypoint.sh` como `ENTRYPOINT` para bajar privilegios a `appuser` (vía `gosu`) recién en runtime, después de corregir el ownership del volumen persistente.
 - **¿Bloquea funcionalidades futuras?** No.
+- **Incidente real post-deploy (2026-08-06, `attempt to write a readonly database` en cada commit a SQLite):** la verificación original de este fix (`USER appuser` fijado en build-time, antes del `CMD`) solo se confirmó contra el job `docker-build` de CI, que valida que la imagen builda — nunca contra el volumen persistente real de Railway, montado en runtime en `/data` (`DATABASE_URL=sqlite:////data/astrea.db`). El volumen llega con ownership de `root`; el `chown -R appuser:appuser /app` del Dockerfile solo cubre `/app` en build-time, nunca `/data`, que no existe hasta que Railway lo monta al arrancar el contenedor. Resultado: `appuser` podía leer el sqlite pero no escribirlo, y cada `INSERT`/`UPDATE` fallaba. Mismo patrón que el incidente de #7: el fix se validó contra el entorno equivocado (build-time / CI) en vez del entorno real de destino (runtime / volumen de Railway). Fix: `docker-entrypoint.sh` corre como root en cada arranque, hace `chown -R appuser:appuser` sobre el directorio del volumen (idempotente, se auto-repara ante cualquier remontaje) y recién ahí exec's a `appuser` vía `gosu` antes de `alembic upgrade head && uvicorn`.
 
 ### 10. Bloques de instrucción de género duplicados — Resuelto
 

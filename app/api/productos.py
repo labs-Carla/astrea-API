@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ from app.infrastructure.persistence_service import (
     listar_producto_configs,
     actualizar_producto_config,
     obtener_producto_generado_por_id,
+    obtener_producto_generado_por_token,
     editar_contenido_producto_generado,
     aprobar_producto_generado,
     marcar_producto_enviado,
@@ -211,3 +213,29 @@ def enviar_producto_generado_admin(producto_generado_id: int, db: Session = Depe
         raise HTTPException(status_code=409, detail=str(e))
 
     return {"status": "enviado", "token": producto_generado.token}
+
+
+@router.get("/productos/token/{token}")
+def obtener_producto_por_token(token: str, db: Session = Depends(get_db)):
+    """
+    Endpoint publico (sin login, sin verificar_admin_secret), equivalente a
+    /carta-natal/token/{token} pero para ProductoGenerado. Solo devuelve
+    contenido si el estado ya paso por aprobar (aprobado o enviado) — nunca
+    expone un producto todavia en revision, aunque alguien adivine el token.
+    """
+    producto = obtener_producto_generado_por_token(db, token)
+
+    if producto is None:
+        raise HTTPException(status_code=404, detail="Link invalido o expirado.")
+
+    if producto.estado not in ("aprobado", "enviado"):
+        raise HTTPException(status_code=409, detail="Este contenido aun no esta listo.")
+
+    config = obtener_producto_config(db, producto.producto_codigo)
+
+    return {
+        "nombre_producto": config.nombre,
+        "estado": producto.estado,
+        "contenido": json.loads(producto.contenido_json),
+        "fecha_generacion": producto.fecha_generacion.isoformat() if producto.fecha_generacion else None,
+    }

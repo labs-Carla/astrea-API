@@ -10,6 +10,7 @@ from app.api.carta_natal import router as carta_natal_router
 from app.api.admin import router as admin_router
 from app.api.horoscopos import router as horoscopos_router
 from app.api.dev_test import router as dev_test_router
+from app.api.productos import router as productos_router
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -52,6 +53,7 @@ app.include_router(carta_natal_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(horoscopos_router, prefix="/api/v1")
 app.include_router(dev_test_router, prefix="/api/v1")
+app.include_router(productos_router, prefix="/api/v1")
 
 @app.get("/health")
 def health_check():

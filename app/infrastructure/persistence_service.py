@@ -438,3 +438,11 @@ def listar_productos_generados_pendientes_de_aprobacion(db: Session) -> list[Pro
         .order_by(ProductoGenerado.fecha_generacion.desc())
         .all()
     )
+
+
+def obtener_producto_generado_por_token(db: Session, token: str) -> ProductoGenerado | None:
+    """
+    Busca un ProductoGenerado por su token de acceso publico. Mismo patron
+    que buscar_carta_por_token — usado por el endpoint publico sin login.
+    """
+    return db.query(ProductoGenerado).filter(ProductoGenerado.token == token).first()

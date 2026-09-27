@@ -36,10 +36,10 @@ COLOR_ELEMENTO = {
     "Agua": "rgba(90,140,158,0.14)",
 }
 
-ORO = "#B8914A"
+ORO = "#9A783E"
 LINEA = "rgba(120,100,60,0.35)"
 TINTA = "#2A2520"
-CREMA = "#FFFCF6"
+CREMA = "#FBF6EA"
 
 CX = CY = 200
 # Anillos, de afuera hacia adentro: signos (150-185), numeros de casa (~139),
@@ -110,7 +110,7 @@ def generar_rueda_svg(calculo: dict) -> str:
         partes.append(f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" stroke="{LINEA}"/>')
         x, y = _punto((R_EXTERIOR + R_SIGNOS) / 2, _angulo(g + 15, asc))
         partes.append(
-            f'<text x="{x:.2f}" y="{y:.2f}" font-size="17" fill="{TINTA}" text-anchor="middle" '
+            f'<text x="{x:.2f}" y="{y:.2f}" font-size="17" fill="{ORO}" text-anchor="middle" '
             f'dominant-baseline="central">{SIMBOLOS_SIGNOS[i]}</text>'
         )
 

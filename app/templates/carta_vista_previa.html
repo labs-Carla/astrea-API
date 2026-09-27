@@ -1,0 +1,327 @@
+{%- set nombres = {"Sol": "Sol", "Luna": "Luna", "Mercurio": "Mercurio", "Venus": "Venus", "Marte": "Marte",
+    "Jupiter": "Júpiter", "Saturno": "Saturno", "Urano": "Urano", "Neptuno": "Neptuno", "Pluton": "Plutón",
+    "NodoNorte": "Nodo Norte", "Quiron": "Quirón", "Ascendente": "Ascendente", "MedioCielo": "Medio Cielo"} -%}
+{%- set signos = {"Geminis": "Géminis", "Cancer": "Cáncer"} -%}
+{%- macro signo(s) %}{{ signos.get(s, s) }}{% endmacro -%}
+{%- macro texto(t) %}{% for p in t|parrafos %}<p>{{ p }}</p>{% endfor %}{% endmacro -%}
+{%- macro pendiente(que) %}<div class="aviso">Aún no se ha generado {{ que }}. Genéralo desde el panel y recarga esta vista.</div>{% endmacro -%}
+{%- macro con_error(que, datos) %}<div class="aviso aviso--error"><strong>{{ que }} se generó con un error de formato.</strong> Regénerala desde el panel.<br><code>{{ datos._validation_error[:300] }}</code></div>{% endmacro -%}
+{%- set interp_ok = interpretacion and not interpretacion._validation_error -%}
+{%- set areas_ok = areas_de_vida and not areas_de_vida._validation_error -%}
+{%- set transitos_ok = transitos and not transitos._validation_error -%}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Vista previa · {{ metadata.nombre or "Carta natal" }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FDF8F2;
+    --paper: #FFFCF6;
+    --gold: #B8914A;
+    --gold-soft: #E9DDC4;
+    --ink: #2A2520;
+    --ink-soft: #5A5249;
+    --hairline: rgba(184, 145, 74, 0.32);
+    --ok: #4F7A58;
+    --warn: #A5642A;
+    --bad: #A33A2E;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font: 16px/1.7 'DM Sans', system-ui, sans-serif;
+  }
+  .barra {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--ink); color: var(--cream);
+    font-size: 12.5px; letter-spacing: .04em;
+    padding: 8px 16px;
+    display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+  }
+  .barra .estado { display: inline-flex; align-items: center; gap: 6px; }
+  .punto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .punto--ok { background: #8FC79B; } .punto--no { background: #E0B070; } .punto--error { background: #E07F70; }
+  .layout { max-width: 1100px; margin: 0 auto; padding: 0 16px 80px; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px; }
+  nav.indice { position: sticky; top: 64px; align-self: start; padding-top: 48px; font-size: 13.5px; }
+  nav.indice a { display: block; color: var(--ink-soft); text-decoration: none; padding: 4px 0 4px 12px; border-left: 1px solid var(--hairline); }
+  nav.indice a:hover { color: var(--gold); border-left-color: var(--gold); }
+  main { min-width: 0; }
+  header.portada { text-align: center; padding: 56px 0 24px; border-bottom: 1px solid var(--hairline); }
+  .marca { font-size: 11px; letter-spacing: .42em; text-transform: uppercase; color: var(--gold); }
+  h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; line-height: 1.2; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); margin: 10px 0 6px; }
+  .datos-nacimiento { color: var(--ink-soft); font-size: 14.5px; }
+  section { padding: 40px 0 8px; border-bottom: 1px solid var(--hairline); scroll-margin-top: 48px; }
+  section:last-of-type { border-bottom: none; }
+  h2 { font-size: 2rem; margin: 0 0 18px; }
+  h2 .num { font-size: 1rem; color: var(--gold); letter-spacing: .1em; margin-right: 10px; font-family: 'DM Sans', sans-serif; }
+  h3 { font-size: 1.45rem; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; }
+  .rueda-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 28px; align-items: center; }
+  .rueda-wrap svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; }
+  .big3 { display: grid; gap: 10px; }
+  .tarjeta { background: var(--paper); border: 1px solid var(--hairline); border-radius: 12px; padding: 14px 16px; }
+  .tarjeta .etq { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+  .tarjeta .val { font-family: 'Cormorant Garamond', serif; font-size: 1.45rem; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-soft); margin-top: 10px; justify-content: center; }
+  .leyenda i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+  .mirada { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .mirada ul, .lista ul { margin: 6px 0 0; padding-left: 18px; }
+  .destacado { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.35rem; text-align: center; color: var(--ink); max-width: 640px; margin: 24px auto; }
+  .planeta { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; padding: 18px 0; border-top: 1px dashed var(--hairline); }
+  .planeta:first-of-type { border-top: none; }
+  .glifo { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--hairline); background: var(--paper); display: grid; place-items: center; font-size: 22px; }
+  .planeta h3 { margin: 0; font-size: 1.35rem; }
+  .posicion { font-size: 13px; color: var(--ink-soft); margin: 2px 0 10px; }
+  .chip { display: inline-block; font-size: 11.5px; padding: 1px 9px; border-radius: 999px; background: var(--gold-soft); color: var(--ink); margin-left: 6px; }
+  .chip--retro { background: #F3D9D2; color: var(--bad); }
+  .plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .plan h4 { margin: 0 0 4px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  .tabla { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 12px; background: var(--paper); margin: 8px 0 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+  th { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  .barras { display: grid; gap: 6px; }
+  .barra-el { display: grid; grid-template-columns: 90px minmax(0, 1fr) 20px; gap: 10px; align-items: center; font-size: 14px; }
+  .pista { height: 8px; background: var(--gold-soft); border-radius: 999px; overflow: hidden; }
+  .relleno { height: 100%; background: var(--gold); }
+  .aviso { background: #FBF1E2; border: 1px solid #EBCB9C; color: var(--warn); border-radius: 10px; padding: 12px 14px; font-size: 14.5px; margin: 8px 0 18px; }
+  .aviso--error { background: #FBE9E6; border-color: #E9B3AA; color: var(--bad); }
+  .aviso code { font-size: 12px; word-break: break-word; }
+  footer { text-align: center; color: var(--ink-soft); font-size: 12.5px; padding: 32px 0 0; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    nav.indice { display: none; }
+    .rueda-wrap { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media print {
+    .barra, nav.indice { display: none; }
+    .layout { display: block; }
+    section { break-inside: avoid-page; }
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <span>VISTA PREVIA · solo admin · carta #{{ metadata.id }}</span>
+  <span class="estado"><span class="punto {{ 'punto--ok' if interp_ok else ('punto--error' if interpretacion else 'punto--no') }}"></span>Interpretación</span>
+  <span class="estado"><span class="punto {{ 'punto--ok' if areas_ok else ('punto--error' if areas_de_vida else 'punto--no') }}"></span>Áreas de vida</span>
+  <span class="estado"><span class="punto {{ 'punto--ok' if transitos_ok else ('punto--error' if transitos else 'punto--no') }}"></span>Tránsitos</span>
+  <span class="estado"><span class="punto {{ 'punto--ok' if metadata.enviado else 'punto--no' }}"></span>{{ 'Enviada' if metadata.enviado else 'Sin aprobar' }}</span>
+</div>
+
+<div class="layout">
+  <nav class="indice" aria-label="Índice">
+    <a href="#rueda">Rueda natal</a>
+    <a href="#mirada">Tu carta en una mirada</a>
+    <a href="#planetas">Planetas y puntos</a>
+    <a href="#aspectos">Aspectos</a>
+    <a href="#areas">Áreas de vida</a>
+    <a href="#plan">Plan de acción</a>
+    <a href="#transitos">Tu cielo hoy</a>
+    <a href="#cierre">Cierre</a>
+    <a href="#tecnico">Datos técnicos</a>
+  </nav>
+
+  <main>
+    <header class="portada">
+      <div class="marca">Astrea · Lectura de Carta Natal</div>
+      <h1>{{ metadata.nombre or "(sin nombre)" }}</h1>
+      <div class="datos-nacimiento">
+        Nacimiento: {{ metadata.fecha_hora_local }} (hora local) ·
+        {{ "%.4f"|format(metadata.latitud) }}, {{ "%.4f"|format(metadata.longitud) }}
+        {% if metadata.email %}· {{ metadata.email }}{% endif %}
+        {% if metadata.genero %}· {{ metadata.genero }}{% endif %}
+      </div>
+    </header>
+
+    {# ───────────── 1. Rueda ───────────── #}
+    <section id="rueda">
+      <h2><span class="num">01</span>Rueda natal</h2>
+      <div class="rueda-wrap">
+        <div>
+          {{ rueda_svg }}
+          <div class="leyenda">
+            <span><i style="border-color:#5B8A66"></i>Trígono / Sextil</span>
+            <span><i style="border-color:#B0503F"></i>Cuadratura / Oposición</span>
+            <span><i style="border-color:#8C5F24"></i>Conjunción</span>
+          </div>
+        </div>
+        <div class="big3">
+          <div class="tarjeta"><div class="etq">☉︎ Sol</div><div class="val">{{ signo(planetas.Sol.signo) }} {{ planetas.Sol.grado_en_signo|grados }}</div></div>
+          <div class="tarjeta"><div class="etq">☽︎ Luna</div><div class="val">{{ signo(planetas.Luna.signo) }} {{ planetas.Luna.grado_en_signo|grados }}</div></div>
+          <div class="tarjeta"><div class="etq">AC Ascendente</div><div class="val">{{ signo(puntos_angulares.Ascendente.signo) }} {{ puntos_angulares.Ascendente.grado_en_signo|grados }}</div></div>
+          {% set eym = elementos_y_modalidades %}
+          {% if eym %}
+          <div class="tarjeta">
+            <div class="etq">Elementos · dominante {{ eym.elemento_dominante }}</div>
+            <div class="barras" style="margin-top:8px">
+              {% set maximo = eym.conteo_elementos.values()|max %}
+              {% for el, n in eym.conteo_elementos.items() %}
+              <div class="barra-el"><span>{{ el }}</span><div class="pista"><div class="relleno" style="width: {{ (n / maximo * 100) if maximo else 0 }}%"></div></div><span>{{ n }}</span></div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    {# ───────────── 2. En una mirada ───────────── #}
+    <section id="mirada">
+      <h2><span class="num">02</span>Tu carta en una mirada</h2>
+      {% if not interpretacion %}{{ pendiente("la interpretación completa") }}
+      {% elif not interp_ok %}{{ con_error("La interpretación completa", interpretacion) }}
+      {% else %}
+        {% set m = interpretacion.carta_en_una_mirada %}
+        <p class="destacado">{{ m.esencia }}</p>
+        <div class="mirada">
+          <div class="tarjeta"><div class="etq">Talentos</div><ul>{% for t in m.talentos %}<li>{{ t }}</li>{% endfor %}</ul></div>
+          <div class="tarjeta"><div class="etq">Desafíos</div><ul>{% for d in m.desafios %}<li>{{ d }}</li>{% endfor %}</ul></div>
+          <div class="tarjeta"><div class="etq">Misión</div><p style="margin:6px 0 0">{{ m.mision }}</p></div>
+        </div>
+        <h3>Panorama general</h3>
+        {{ texto(interpretacion.overview) }}
+        <h3>Elementos y dignidades</h3>
+        {{ texto(interpretacion.lectura_elementos_dignidades) }}
+      {% endif %}
+    </section>
+
+    {# ───────────── 3. Planetas ───────────── #}
+    <section id="planetas">
+      <h2><span class="num">03</span>Planetas y puntos</h2>
+      {% if not interp_ok %}<div class="aviso">Sin interpretación todavía: se muestran solo las posiciones.</div>{% endif %}
+      {% for nombre, p in planetas.items() %}
+      <div class="planeta">
+        <div class="glifo">{{ simbolos.get(nombre, nombre[0]) }}</div>
+        <div>
+          <h3>{{ nombres.get(nombre, nombre) }}</h3>
+          <div class="posicion">
+            {{ signo(p.signo) }} {{ p.grado_en_signo|grados }} · Casa {{ p.casa }}
+            {% if p.retrogrado %}<span class="chip chip--retro">℞ retrógrado</span>{% endif %}
+            {% if dignidades.get(nombre) %}<span class="chip">{{ dignidades[nombre].dignidad }}</span>{% endif %}
+          </div>
+          {% if interp_ok %}{{ texto(p.interpretacion) }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% for nombre, clave in (("Ascendente", "ascendente"), ("MedioCielo", "medio_cielo")) %}
+      {% set punto = puntos_angulares[nombre] %}
+      <div class="planeta">
+        <div class="glifo" style="font-size:14px;font-weight:600;color:var(--gold)">{{ "AC" if nombre == "Ascendente" else "MC" }}</div>
+        <div>
+          <h3>{{ nombres[nombre] }}</h3>
+          <div class="posicion">{{ signo(punto.signo) }} {{ punto.grado_en_signo|grados }}</div>
+          {% if interp_ok %}{{ texto(interpretacion[clave]) }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </section>
+
+    {# ───────────── 4. Aspectos ───────────── #}
+    <section id="aspectos">
+      <h2><span class="num">04</span>Aspectos</h2>
+      {% if areas_ok and areas_de_vida.aspectos_interpretados %}
+        {% for a in areas_de_vida.aspectos_interpretados %}
+        <h3>{{ nombres.get(a.punto_a, a.punto_a) }} · {{ a.aspecto }} · {{ nombres.get(a.punto_b, a.punto_b) }}</h3>
+        {{ texto(a.interpretacion) }}
+        {% endfor %}
+      {% else %}
+        {% if not areas_de_vida %}{{ pendiente("la interpretación de aspectos (va con Áreas de vida)") }}{% elif not areas_ok %}{{ con_error("Áreas de vida", areas_de_vida) }}{% endif %}
+      {% endif %}
+    </section>
+
+    {# ───────────── 5. Áreas de vida ───────────── #}
+    <section id="areas">
+      <h2><span class="num">05</span>Áreas de vida</h2>
+      {% if not areas_de_vida %}{{ pendiente("Áreas de vida") }}
+      {% elif not areas_ok %}{{ con_error("Áreas de vida", areas_de_vida) }}
+      {% else %}
+        <h3>Vocación</h3>{{ texto(areas_de_vida.vocacion) }}
+        <h3>Dinero</h3>{{ texto(areas_de_vida.dinero) }}
+        <h3>Amor</h3>{{ texto(areas_de_vida.amor) }}
+        <h3>Herida y don</h3>{{ texto(areas_de_vida.herida_y_don) }}
+      {% endif %}
+    </section>
+
+    {# ───────────── 6. Plan de acción ───────────── #}
+    <section id="plan">
+      <h2><span class="num">06</span>Plan de acción y brújula</h2>
+      {% if not areas_ok %}{{ pendiente("el plan de acción (va con Áreas de vida)") }}
+      {% else %}
+        {% set pa = areas_de_vida.plan_de_accion %}
+        <div class="plan">
+          {% for titulo, items in (("Potencia", pa.potencia), ("Observa", pa.observa), ("Evita", pa.evita), ("Empieza", pa.empieza)) %}
+          <div class="tarjeta lista"><h4>{{ titulo }}</h4><ul>{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul></div>
+          {% endfor %}
+        </div>
+        {% set b = areas_de_vida.brujula %}
+        <h3>Brújula personal</h3>
+        <ol>{% for a in b.aprendizajes %}<li>{{ a }}</li>{% endfor %}</ol>
+        <p class="destacado">«{{ b.mantra }}»</p>
+      {% endif %}
+    </section>
+
+    {# ───────────── 7. Tránsitos ───────────── #}
+    <section id="transitos">
+      <h2><span class="num">07</span>Tu cielo hoy</h2>
+      {% if not transitos %}{{ pendiente("Tránsitos") }}
+      {% elif not transitos_ok %}{{ con_error("Tránsitos", transitos) }}
+      {% else %}
+        {{ texto(transitos.clima_energetico) }}
+        <div class="tarjeta lista"><div class="etq">Áreas activadas</div><ul>{% for a in transitos.areas_activadas %}<li>{{ a }}</li>{% endfor %}</ul></div>
+        <h3>Oportunidades</h3>{{ texto(transitos.oportunidades) }}
+        <h3>Retos</h3>{{ texto(transitos.retos) }}
+        <h3>Consejo</h3>{{ texto(transitos.consejo) }}
+        <h3>Próximos meses</h3>
+        <div class="mirada">
+          {% set pm = transitos.proximos_meses %}
+          {% for titulo, t in (("Carrera", pm.carrera), ("Amor", pm.amor), ("Dinero", pm.dinero), ("Crecimiento", pm.crecimiento)) %}
+          <div class="tarjeta"><div class="etq">{{ titulo }}</div><p style="margin:6px 0 0">{{ t }}</p></div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+
+    {# ───────────── 8. Cierre ───────────── #}
+    <section id="cierre">
+      <h2><span class="num">08</span>Cierre</h2>
+      {% if not interp_ok %}{{ pendiente("la interpretación completa") }}
+      {% else %}
+        {{ texto(interpretacion.conclusion) }}
+        <p class="destacado">{{ interpretacion.frase_de_cierre }}</p>
+        {% if areas_ok %}<p class="destacado">{{ areas_de_vida.brujula.frase_final }}</p>{% endif %}
+      {% endif %}
+    </section>
+
+    {# ───────────── 9. Datos técnicos ───────────── #}
+    <section id="tecnico">
+      <h2><span class="num">09</span>Datos técnicos</h2>
+      <h3>Casas (Placidus)</h3>
+      <div class="tabla"><table>
+        <thead><tr><th>Casa</th><th>Signo</th><th>Grado</th></tr></thead>
+        <tbody>{% for n, c in casas.items() %}<tr><td>{{ n }}</td><td>{{ signo(c.signo) }}</td><td>{{ c.grado_en_signo|grados }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <h3>Aspectos calculados ({{ aspectos|length }})</h3>
+      <div class="tabla"><table>
+        <thead><tr><th>Punto A</th><th>Aspecto</th><th>Punto B</th><th>Orbe</th></tr></thead>
+        <tbody>{% for a in aspectos %}<tr><td>{{ nombres.get(a.punto_a, a.punto_a) }}</td><td>{{ a.aspecto }}</td><td>{{ nombres.get(a.punto_b, a.punto_b) }}</td><td>{{ a.orbe_usado }}°</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+
+    <footer>Vista previa interna generada por astrea-API · no compartir con el cliente</footer>
+  </main>
+</div>
+</body>
+</html>

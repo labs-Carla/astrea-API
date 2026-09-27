@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cálculo de carta natal — {{ metadata.nombre }}</title>
+<style>
+  :root {
+    --bg: #faf8f4;
+    --surface: #ffffff;
+    --text: #2b2433;
+    --muted: #7a7285;
+    --border: #e6e1ea;
+    --accent: #6b4e9b;
+    --accent-soft: #efe9f7;
+    --retro: #b5452f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16131b;
+      --surface: #1f1b26;
+      --text: #ece8f1;
+      --muted: #a39cae;
+      --border: #332d3d;
+      --accent: #b49ae0;
+      --accent-soft: #2c2439;
+      --retro: #e7806b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+  header h1 { margin: 0 0 4px; font-size: 1.8rem; }
+  header p { margin: 0; color: var(--muted); }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 24px 0 8px;
+  }
+  .meta div, .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .meta span { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .meta strong { font-variant-numeric: tabular-nums; }
+  section { margin-top: 36px; }
+  h2 { font-size: 1.15rem; margin: 0 0 12px; color: var(--accent); }
+  .tabla { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; }
+  .retro { color: var(--retro); font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: .8rem; }
+  .dos-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .barra { display: grid; grid-template-columns: 90px 1fr 24px; align-items: center; gap: 10px; margin: 6px 0; }
+  .barra .pista { height: 10px; background: var(--accent-soft); border-radius: 999px; overflow: hidden; }
+  .barra .relleno { height: 100%; background: var(--accent); border-radius: 999px; }
+  .card h3 { margin: 0 0 8px; font-size: .95rem; }
+  .card p { margin: 8px 0 0; color: var(--muted); font-size: .85rem; }
+  footer { margin-top: 48px; color: var(--muted); font-size: .8rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>{{ metadata.nombre }}</h1>
+    <p>Cálculo astronómico y astrológico de la carta natal (Swiss Ephemeris, casas Placidus)</p>
+  </header>
+
+  <div class="meta">
+    <div><span>Fecha y hora local</span><strong>{{ metadata.fecha_hora_local }}</strong></div>
+    <div><span>Fecha y hora UTC</span><strong>{{ metadata.fecha_hora_utc }}</strong></div>
+    <div><span>Lugar</span><strong>{{ metadata.ciudad }}, {{ metadata.pais }}</strong></div>
+    <div><span>Coordenadas</span><strong>{{ "%.4f"|format(metadata.latitud) }}, {{ "%.4f"|format(metadata.longitud) }}</strong></div>
+  </div>
+
+  <section>
+    <h2>Puntos angulares</h2>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Punto</th><th>Signo</th><th class="num">Grado</th><th class="num">Longitud absoluta</th></tr></thead>
+        <tbody>
+        {% for nombre, punto in puntos_angulares.items() %}
+          <tr>
+            <td>{{ nombre }}</td>
+            <td>{{ punto.signo }}</td>
+            <td class="num">{{ punto.grado_en_signo|grados }}</td>
+            <td class="num">{{ "%.4f"|format(punto.longitud_absoluta) }}°</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Planetas</h2>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Planeta</th><th>Signo</th><th class="num">Grado</th><th class="num">Casa</th><th>Mov.</th><th>Dignidad</th><th class="num">Velocidad (°/día)</th><th class="num">Longitud absoluta</th></tr></thead>
+        <tbody>
+        {% for nombre, p in planetas.items() %}
+          <tr>
+            <td>{{ nombre }}</td>
+            <td>{{ p.signo }}</td>
+            <td class="num">{{ p.grado_en_signo|grados }}</td>
+            <td class="num">{{ p.casa }}</td>
+            <td>{% if p.retrogrado %}<span class="retro">℞ Retrógrado</span>{% else %}Directo{% endif %}</td>
+            <td>{% if dignidades.get(nombre) %}<span class="badge">{{ dignidades[nombre].dignidad }}</span>{% else %}—{% endif %}</td>
+            <td class="num">{{ "%.4f"|format(p.velocidad) }}</td>
+            <td class="num">{{ "%.4f"|format(p.longitud_absoluta) }}°</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Casas</h2>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Casa</th><th>Signo en cúspide</th><th class="num">Grado</th><th class="num">Longitud absoluta</th></tr></thead>
+        <tbody>
+        {% for numero, casa in casas.items() %}
+          <tr>
+            <td>Casa {{ numero }}</td>
+            <td>{{ casa.signo }}</td>
+            <td class="num">{{ casa.grado_en_signo|grados }}</td>
+            <td class="num">{{ "%.4f"|format(casa.longitud_absoluta) }}°</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Aspectos ({{ aspectos|length }})</h2>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Punto A</th><th>Aspecto</th><th>Punto B</th><th class="num">Ángulo exacto</th><th class="num">Distancia real</th><th class="num">Orbe</th></tr></thead>
+        <tbody>
+        {% for a in aspectos %}
+          <tr>
+            <td>{{ a.punto_a }}</td>
+            <td><span class="badge">{{ a.aspecto }}</span></td>
+            <td>{{ a.punto_b }}</td>
+            <td class="num">{{ a.angulo_exacto }}°</td>
+            <td class="num">{{ a.distancia_real }}°</td>
+            <td class="num">{{ a.orbe_usado }}°</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6">Sin aspectos mayores dentro de orbe.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% set eym = elementos_y_modalidades %}
+  {% if eym %}
+  <section>
+    <h2>Elementos y modalidades</h2>
+    <div class="dos-col">
+      {% for titulo, conteo, dominante in [
+          ("Elementos", eym.conteo_elementos, eym.elemento_dominante),
+          ("Modalidades", eym.conteo_modalidades, eym.modalidad_dominante)] %}
+      {% set maximo = conteo.values()|max %}
+      <div class="card">
+        <h3>{{ titulo }}</h3>
+        {% for nombre, cantidad in conteo.items() %}
+        <div class="barra">
+          <span>{{ nombre }}</span>
+          <div class="pista"><div class="relleno" style="width: {{ (cantidad / maximo * 100) if maximo else 0 }}%"></div></div>
+          <strong>{{ cantidad }}</strong>
+        </div>
+        {% endfor %}
+        <p>Dominante: <strong>{{ dominante }}</strong></p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <footer>Generado por astrea-API · cálculo sin interpretación de IA</footer>
+</main>
+</body>
+</html>

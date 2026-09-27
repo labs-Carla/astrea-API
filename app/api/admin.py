@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -10,6 +11,7 @@ from app.services.interpretation_carta_completa import interpretar_carta_complet
 from app.services.interpretation_areas_de_vida import interpretar_areas_de_vida
 from app.services.interpretation_transitos import interpretar_transitos
 from app.services.interpretation_horoscopos import generar_horoscopos
+from app.services.report_service import generar_html_vista_previa
 from app.services.transitos_service import calcular_transitos_actuales, calcular_transitos_por_signo
 from app.infrastructure.persistence_service import (
     listar_pendientes_de_aprobacion,
@@ -119,6 +121,40 @@ def ver_detalle_carta(carta_id: int, db: Session = Depends(get_db)):
         "areas_de_vida": obtener_areas_de_vida(carta),
         "transitos": obtener_transitos(carta),
     }
+
+
+@router.get(
+    "/admin/carta/{carta_id}/vista-previa",
+    response_class=HTMLResponse,
+    dependencies=[Depends(verificar_admin_secret)],
+)
+def vista_previa_carta(carta_id: int, db: Session = Depends(get_db)):
+    """
+    Vista previa HTML (solo admin, no es el link del cliente) con todo lo que
+    tiene la carta hasta ahora: rueda natal, calculo, interpretacion, areas
+    de vida y transitos. A diferencia de /admin/carta/{id}, no exige que la
+    interpretacion exista: las secciones faltantes se muestran pendientes.
+    """
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    calculo, _, interpretacion = deserializar_carta(carta)
+    metadata = {
+        "id": carta.id,
+        "nombre": carta.nombre_reporte,
+        "email": carta.email,
+        "genero": carta.genero,
+        "enviado": carta.enviado,
+        "fecha_hora_local": carta.fecha_hora_local.strftime("%d/%m/%Y %H:%M"),
+        "latitud": carta.latitud,
+        "longitud": carta.longitud,
+    }
+    html = generar_html_vista_previa(
+        metadata, calculo, interpretacion, obtener_areas_de_vida(carta), obtener_transitos(carta)
+    )
+    return HTMLResponse(content=html)
 
 
 @router.post("/admin/aprobar/{carta_id}", dependencies=[Depends(verificar_admin_secret)])

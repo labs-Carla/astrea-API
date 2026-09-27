@@ -1,5 +1,8 @@
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup
 import os
+
+from app.domain.rueda_natal_service import generar_rueda_svg, SIMBOLOS_PLANETAS
 
 _RUTA_TEMPLATES = os.path.join(os.path.dirname(__file__), "..", "templates")
 _env = Environment(
@@ -16,6 +19,16 @@ def _formatear_grados(valor: float) -> str:
 
 
 _env.filters["grados"] = _formatear_grados
+
+
+def _parrafos(texto: str | None) -> list[str]:
+    """Parte un texto de Claude en parrafos (por lineas en blanco o saltos)."""
+    if not texto:
+        return []
+    return [p.strip() for p in texto.replace("\r", "").split("\n") if p.strip()]
+
+
+_env.filters["parrafos"] = _parrafos
 
 # Mapea el nombre del planeta (como aparece en el cálculo) a la clave usada
 # en el JSON de interpretación (definida en interpretation_carta_completa.py)
@@ -79,3 +92,33 @@ def generar_html_calculo(metadata: dict, calculo: dict) -> str:
         dignidades=calculo.get("dignidades", {}),
         elementos_y_modalidades=calculo.get("elementos_y_modalidades", {}),
     )
+
+
+def _seccion_valida(datos: dict | None) -> dict | None:
+    """None si la seccion no existe; se deja tal cual si trae _validation_error
+    (el template la muestra como error para regenerarla desde el panel)."""
+    return datos if datos else None
+
+
+def generar_html_vista_previa(
+    metadata: dict,
+    calculo: dict,
+    interpretacion: dict | None,
+    areas_de_vida: dict | None,
+    transitos: dict | None,
+) -> str:
+    """
+    Vista previa HTML (solo admin) de todo lo que tiene una carta hasta el
+    momento: rueda natal, calculo, interpretacion completa, areas de vida y
+    transitos. Las secciones que aun no existen se muestran como pendientes.
+    """
+    template = _env.get_template("carta_vista_previa.html")
+    contexto = construir_contexto(metadata, calculo, interpretacion or {})
+    contexto.update(
+        interpretacion=_seccion_valida(interpretacion),
+        areas_de_vida=_seccion_valida(areas_de_vida),
+        transitos=_seccion_valida(transitos),
+        rueda_svg=Markup(generar_rueda_svg(calculo)),
+        simbolos=SIMBOLOS_PLANETAS,
+    )
+    return template.render(**contexto)

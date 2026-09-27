@@ -168,7 +168,6 @@
   .aviso { border: 1px dashed rgba(138,90,34,.5); color: var(--warn); padding: 12px 16px; font: 14px/1.6 'DM Sans', sans-serif; margin: 6px 0 18px; }
   .aviso--error { border-color: rgba(154,58,46,.5); color: var(--bad); }
   .aviso code { font-size: 12px; word-break: break-word; }
-  footer { text-align: center; color: var(--suave); font: 11.5px/1.6 'DM Sans', sans-serif; letter-spacing: .06em; padding-top: 28px; }
 
   @media screen and (max-width: 640px) {
     .hoja { margin: 0; padding: 0 22px 36px; }
@@ -196,7 +195,7 @@
     @page { size: A4 portrait; margin: 18mm 19mm; }
     html, body { background: #fff; }
     body { font-size: 10.5pt; line-height: 1.65; }
-    .barra, .indice, footer { display: none; }
+    .barra, .indice { display: none; }
     .hoja { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
     .portada { width: auto; min-height: 261mm; margin: 0; break-after: page; }
     .portada .titulo { font-size: 46pt; }
@@ -241,7 +240,7 @@
     <div class="divisor"></div>
     <div class="meta">
       {{ metadata.fecha_hora_local }} (hora local) · {{ "%.4f"|format(metadata.latitud) }}, {{ "%.4f"|format(metadata.longitud) }}<br>
-      {% if metadata.email %}{{ metadata.email }}{% endif %}{% if metadata.genero %} · {{ metadata.genero }}{% endif %}
+      {% if metadata.email %}{{ metadata.email }}{% endif %}
     </div>
   </header>
 
@@ -430,7 +429,6 @@
     </table></div>
   </section>
 
-  <footer>Vista previa interna generada por astrea-API · no compartir con el cliente</footer>
 </div>
 </body>
 </html>

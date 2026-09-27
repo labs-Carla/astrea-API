@@ -159,3 +159,16 @@ def test_rueda_svg_tiene_signos_planetas_y_ejes():
 
     assert svg.startswith("<svg") and svg.endswith("</svg>")
     assert svg.count("♈") == 1 and "☉" in svg and ">AC<" in svg and ">MC<" in svg
+
+
+def test_vista_previa_no_muestra_genero_ni_pie_interno(app_client):
+    client, SessionLocal = app_client
+    carta_id = _crear_carta(SessionLocal)
+    with SessionLocal() as db:
+        db.get(CartaNatalGuardada, carta_id).genero = "femenino"
+        db.commit()
+
+    html = client.get(f"/api/v1/admin/carta/{carta_id}/vista-previa", headers=ADMIN).text
+
+    assert "femenino" not in html
+    assert "no compartir con el cliente" not in html

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, false
 from datetime import datetime, timezone
 from app.core.database import Base
 
@@ -40,6 +40,13 @@ class CartaNatalGuardada(Base):
     nombre_reporte = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
     fecha_solicitud_compra = Column(DateTime, nullable=True)  # cuando se envio el formulario de gracias.html, distinto de fecha_generacion (calculo) y fecha_envio (aprobacion)
+
+    # Sin webhook de Hotmart: los datos natales se piden ANTES del pago
+    # (comprar.html -> /carta-natal/orden), asi que una orden nace con
+    # pago_confirmado=False y el admin la confirma a mano tras ver la venta
+    # en Hotmart. Solo las confirmadas aparecen en /admin/pendientes.
+    pago_confirmado = Column(Boolean, nullable=False, default=False, server_default=false())
+    fecha_confirmacion_pago = Column(DateTime, nullable=True)
 
     genero = Column(String, nullable=True)  # "femenino"/"masculino", para concordancia de genero en espanol en ambas llamadas a Claude
 

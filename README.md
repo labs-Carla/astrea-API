@@ -156,7 +156,8 @@ docker run -p 8000:8000 --env-file .env astrea-api
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/api/v1/carta-natal/resumen` | Resumen gratuito (rate-limited, sin IA) |
-| `POST` | `/api/v1/carta-natal/compra` | Registra una compra y calcula la carta (sin IA todavía) |
+| `POST` | `/api/v1/carta-natal/orden` | Registra una orden ANTES del pago en Hotmart (pago sin confirmar) y devuelve `orden_id` |
+| `POST` | `/api/v1/carta-natal/compra` | Flujo legado post-pago: registra una compra ya pagada y calcula la carta (sin IA todavía) |
 | `POST` | `/api/v1/carta-natal/html` | Reporte en HTML de una carta ya generada |
 | `POST` | `/api/v1/carta-natal/data` | Reporte en JSON, para consumo del frontend |
 | `POST` | `/api/v1/carta-natal/pdf` | Reporte en PDF (genera la interpretación si falta) |
@@ -168,7 +169,9 @@ docker run -p 8000:8000 --env-file .env astrea-api
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/api/v1/admin/pendientes` | Cartas compradas pendientes de aprobación |
+| `GET` | `/api/v1/admin/esperando-pago` | Órdenes con datos cargados cuyo pago aún no se confirmó |
+| `POST` | `/api/v1/admin/confirmar-pago/{id}` | Confirma a mano el pago (verificado en Hotmart) |
+| `GET` | `/api/v1/admin/pendientes` | Cartas pagadas pendientes de aprobación |
 | `GET` | `/api/v1/admin/carta/{id}` | Detalle completo de una carta |
 | `POST` | `/api/v1/admin/generar-interpretacion/{id}` | Genera la interpretación completa vía IA |
 | `POST` | `/api/v1/admin/generar-areas-de-vida/{id}` | Genera vocación/dinero/amor/herida y don |

@@ -7,6 +7,7 @@ from app.core.limiter import limiter
 from app.core.database import get_db
 from app.models.schemas import DatosNacimiento, DatosCompra
 from app.services.calculo_carta_service import calcular_todo
+from app.services.compra_service import registrar_solicitud_compra
 from app.services.report_service import generar_html_reporte, construir_contexto
 from app.infrastructure.pdf_service import generar_pdf_desde_html
 from app.services.interpretation_carta_completa import interpretar_carta_completa
@@ -17,7 +18,6 @@ from app.infrastructure.persistence_service import (
     guardar_resumen,
     guardar_carta_completa,
     actualizar_con_interpretacion,
-    actualizar_datos_compra,
     buscar_carta_por_token,
     obtener_areas_de_vida,
     obtener_transitos,
@@ -183,20 +183,27 @@ async def procesar_compra(request: Request, datos: DatosCompra, db: Session = De
     """
     try:
         latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
-
-        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
-
-        if carta_existente is not None:
-            carta_existente = actualizar_datos_compra(db, carta_existente, datos.nombre, datos.email)
-        else:
-            resultado = calcular_todo(datos, latitud, longitud)
-            calculo = resultado["calculo"]
-            guardar_carta_completa(
-                db, datos.fecha_hora_local, latitud, longitud, calculo, interpretacion=None,
-                nombre_reporte=datos.nombre, email=datos.email,
-            )
-
+        registrar_solicitud_compra(db, datos, latitud, longitud, pago_confirmado=True)
         return {"status": "recibido", "mensaje": "Datos guardados, tu lectura esta siendo preparada."}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/carta-natal/orden")
+@limiter.limit("5/minute")
+async def crear_orden(request: Request, datos: DatosCompra, db: Session = Depends(get_db)):
+    """
+    Recibe los datos natales desde comprar.html ANTES de pagar en Hotmart
+    (no hay webhook: asi ninguna compra llega sin datos). La orden queda
+    con pago_confirmado=False hasta que el admin la confirma a mano desde
+    el panel. Devuelve orden_id para mandarlo a Hotmart como `sck` y poder
+    cruzar la venta con la orden.
+    """
+    try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+        carta = registrar_solicitud_compra(db, datos, latitud, longitud, pago_confirmado=False)
+        return {"status": "recibido", "orden_id": carta.id}
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -1,5 +1,7 @@
 import json
-from fastapi import APIRouter, HTTPException, Request, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Request, Depends, Query
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
 
@@ -8,7 +10,7 @@ from app.core.database import get_db
 from app.models.schemas import DatosNacimiento, DatosCompra
 from app.services.calculo_carta_service import calcular_todo
 from app.services.compra_service import registrar_solicitud_compra
-from app.services.report_service import generar_html_reporte, construir_contexto
+from app.services.report_service import generar_html_reporte, generar_html_calculo, construir_contexto
 from app.infrastructure.pdf_service import generar_pdf_desde_html
 from app.services.interpretation_carta_completa import interpretar_carta_completa
 from app.domain.resumen_deterministico_service import generar_resumen_deterministico
@@ -68,6 +70,38 @@ async def generar_resumen_gratuito(request: Request, datos: DatosNacimiento, db:
             "calculo": calculo,
             "resumen": resumen,
         }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/carta-natal/calculo", response_class=HTMLResponse)
+@limiter.limit("5/minute")
+def ver_calculo_carta_html(
+    request: Request,
+    datos: Annotated[DatosNacimiento, Query()],
+    db: Session = Depends(get_db),
+):
+    """
+    Pagina HTML con el calculo completo de la carta (posiciones, casas,
+    aspectos, dignidades, elementos) sin interpretacion de IA. Es GET con
+    query params para poder abrirla directo en el navegador, ej:
+    /api/v1/carta-natal/calculo?nombre=Ana&fecha_hora_local=1990-05-15T14:30&ciudad=Buenos%20Aires&pais=Argentina
+    Reutiliza el calculo guardado si la carta ya existe; si no, lo calcula
+    sin persistirlo (es solo una vista, no avanza el funnel).
+    """
+    try:
+        latitud, longitud = geocodificar_ciudad(datos.ciudad, datos.pais)
+
+        carta_existente = buscar_carta_existente(db, datos.fecha_hora_local, latitud, longitud)
+
+        if carta_existente is not None:
+            calculo, _, _ = deserializar_carta(carta_existente)
+        else:
+            calculo = calcular_todo(datos, latitud, longitud)["calculo"]
+
+        metadata = _metadata_base(datos, latitud, longitud, calculo.get("fecha_hora_utc", ""))
+        return HTMLResponse(content=generar_html_calculo(metadata, calculo))
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

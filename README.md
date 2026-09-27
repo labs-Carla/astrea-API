@@ -158,6 +158,7 @@ docker run -p 8000:8000 --env-file .env astrea-api
 | `POST` | `/api/v1/carta-natal/resumen` | Resumen gratuito (rate-limited, sin IA) |
 | `POST` | `/api/v1/carta-natal/orden` | Registra una orden ANTES del pago en Hotmart (pago sin confirmar) y devuelve `orden_id` |
 | `POST` | `/api/v1/carta-natal/compra` | Flujo legado post-pago: registra una compra ya pagada y calcula la carta (sin IA todavía) |
+| `GET` | `/api/v1/carta-natal/calculo` | Página HTML con el cálculo completo (sin IA), vía query params `nombre`, `fecha_hora_local`, `ciudad`, `pais` |
 | `POST` | `/api/v1/carta-natal/html` | Reporte en HTML de una carta ya generada |
 | `POST` | `/api/v1/carta-natal/data` | Reporte en JSON, para consumo del frontend |
 | `POST` | `/api/v1/carta-natal/pdf` | Reporte en PDF (genera la interpretación si falta) |

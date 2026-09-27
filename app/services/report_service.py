@@ -7,6 +7,16 @@ _env = Environment(
     autoescape=True,
 )
 
+
+def _formatear_grados(valor: float) -> str:
+    """24.617 -> "24°37'" (grados y minutos de arco, minutos truncados)."""
+    grados = int(valor)
+    minutos = int((valor - grados) * 60)
+    return f"{grados}°{minutos:02d}'"
+
+
+_env.filters["grados"] = _formatear_grados
+
 # Mapea el nombre del planeta (como aparece en el cálculo) a la clave usada
 # en el JSON de interpretación (definida en interpretation_carta_completa.py)
 MAPEO_INTERPRETACION = {
@@ -53,3 +63,19 @@ def generar_html_reporte(metadata: dict, calculo: dict, interpretacion: dict) ->
     contexto = construir_contexto(metadata, calculo, interpretacion)
     return template.render(**contexto)
 
+
+def generar_html_calculo(metadata: dict, calculo: dict) -> str:
+    """
+    Renderiza solo el calculo astronomico/astrologico (sin interpretacion de
+    Claude) como pagina HTML, para inspeccionar una carta sin pagar IA.
+    """
+    template = _env.get_template("carta_calculo.html")
+    return template.render(
+        metadata=metadata,
+        planetas=calculo["planetas"],
+        casas=calculo["casas"],
+        puntos_angulares=calculo["puntos_angulares"],
+        aspectos=calculo.get("aspectos", []),
+        dignidades=calculo.get("dignidades", {}),
+        elementos_y_modalidades=calculo.get("elementos_y_modalidades", {}),
+    )

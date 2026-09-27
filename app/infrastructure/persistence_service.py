@@ -60,13 +60,17 @@ def guardar_carta_completa(
     interpretacion: dict | None,
     nombre_reporte: str | None = None,
     email: str | None = None,
+    pago_confirmado: bool = True,
 ) -> CartaNatalGuardada:
     """
     Guarda una carta nueva. Si interpretacion es None (ej. viene de
     /carta-natal/compra sin IA todavia), queda pendiente para generarse
     despues desde el panel de admin. Si viene con nombre_reporte/email
     (flujo de compra), registra fecha_solicitud_compra automaticamente.
+    pago_confirmado=False solo para ordenes creadas antes del pago
+    (/carta-natal/orden); solo aplica si hay datos de compra.
     """
+    es_compra = bool(nombre_reporte and email)
     nueva_carta = CartaNatalGuardada(
         fecha_hora_local=fecha_hora_local,
         latitud=latitud,
@@ -76,7 +80,9 @@ def guardar_carta_completa(
         resumen_json=None,
         nombre_reporte=nombre_reporte,
         email=email,
-        fecha_solicitud_compra=datetime.now(timezone.utc) if (nombre_reporte and email) else None,
+        fecha_solicitud_compra=datetime.now(timezone.utc) if es_compra else None,
+        pago_confirmado=es_compra and pago_confirmado,
+        fecha_confirmacion_pago=datetime.now(timezone.utc) if (es_compra and pago_confirmado) else None,
     )
     db.add(nueva_carta)
     db.commit()
@@ -99,35 +105,68 @@ def actualizar_con_interpretacion(
 
 
 def actualizar_datos_compra(
-    db: Session, carta: CartaNatalGuardada, nombre_reporte: str, email: str
+    db: Session, carta: CartaNatalGuardada, nombre_reporte: str, email: str, pago_confirmado: bool = True
 ) -> CartaNatalGuardada:
     """
     Actualiza una carta ya existente (típicamente generada antes por el flujo
     gratuito) con los datos de la compra premium: nombre_reporte y email,
     necesarios para el envío posterior del link de acceso. Registra tambien
     fecha_solicitud_compra con el momento real de este envio.
+    Con pago_confirmado=False (orden previa al pago) nunca "des-confirma"
+    un pago que ya estaba confirmado.
     """
     carta.nombre_reporte = nombre_reporte
     carta.email = email
     carta.fecha_solicitud_compra = datetime.now(timezone.utc)
+    if pago_confirmado and not carta.pago_confirmado:
+        carta.pago_confirmado = True
+        carta.fecha_confirmacion_pago = datetime.now(timezone.utc)
     db.commit()
     db.refresh(carta)
     return carta
 
 def listar_pendientes_de_aprobacion(db: Session) -> list[CartaNatalGuardada]:
     """
-    Lista las cartas que vienen del flujo de compra (tienen email) y aun no
-    han sido aprobadas/enviadas al cliente. Usado por el panel de admin.
+    Lista las cartas que vienen del flujo de compra (tienen email), con el
+    pago ya confirmado, y aun no han sido aprobadas/enviadas al cliente.
+    Usado por el panel de admin.
     """
     return (
         db.query(CartaNatalGuardada)
         .filter(
             CartaNatalGuardada.email.isnot(None),
+            CartaNatalGuardada.pago_confirmado.is_(True),
             CartaNatalGuardada.enviado.is_(False),
         )
         .order_by(CartaNatalGuardada.fecha_generacion.desc())
         .all()
     )
+
+
+def listar_ordenes_esperando_pago(db: Session) -> list[CartaNatalGuardada]:
+    """
+    Ordenes creadas desde comprar.html (datos natales ya cargados) cuyo pago
+    en Hotmart todavia no fue confirmado a mano por el admin.
+    """
+    return (
+        db.query(CartaNatalGuardada)
+        .filter(
+            CartaNatalGuardada.email.isnot(None),
+            CartaNatalGuardada.pago_confirmado.is_(False),
+            CartaNatalGuardada.enviado.is_(False),
+        )
+        .order_by(CartaNatalGuardada.fecha_solicitud_compra.desc())
+        .all()
+    )
+
+
+def confirmar_pago(db: Session, carta: CartaNatalGuardada) -> CartaNatalGuardada:
+    """Marca el pago de una orden como confirmado (verificado a mano en Hotmart)."""
+    carta.pago_confirmado = True
+    carta.fecha_confirmacion_pago = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(carta)
+    return carta
 
 
 def obtener_carta_por_id(db: Session, carta_id: int) -> CartaNatalGuardada | None:

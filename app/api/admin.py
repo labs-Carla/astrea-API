@@ -13,6 +13,8 @@ from app.services.interpretation_horoscopos import generar_horoscopos
 from app.services.transitos_service import calcular_transitos_actuales, calcular_transitos_por_signo
 from app.infrastructure.persistence_service import (
     listar_pendientes_de_aprobacion,
+    listar_ordenes_esperando_pago,
+    confirmar_pago,
     obtener_carta_por_id,
     aprobar_y_generar_token,
     actualizar_con_interpretacion,
@@ -50,6 +52,40 @@ def listar_pendientes(db: Session = Depends(get_db)):
         }
         for carta in pendientes
     ]
+
+
+@router.get("/admin/esperando-pago", dependencies=[Depends(verificar_admin_secret)])
+def listar_esperando_pago(db: Session = Depends(get_db)):
+    """
+    Ordenes con datos natales ya cargados (comprar.html) cuyo pago en
+    Hotmart aun no fue confirmado. El admin las cruza por email/orden_id
+    (sck) contra las ventas de Hotmart y confirma con /admin/confirmar-pago.
+    """
+    ordenes = listar_ordenes_esperando_pago(db)
+    return [
+        {
+            "id": carta.id,
+            "nombre_reporte": carta.nombre_reporte,
+            "email": carta.email,
+            "fecha_hora_local": carta.fecha_hora_local.isoformat(),
+            "fecha_solicitud_compra": _iso_utc(carta.fecha_solicitud_compra),
+        }
+        for carta in ordenes
+    ]
+
+
+@router.post("/admin/confirmar-pago/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
+def confirmar_pago_admin(carta_id: int, db: Session = Depends(get_db)):
+    carta = obtener_carta_por_id(db, carta_id)
+
+    if carta is None:
+        raise HTTPException(status_code=404, detail="Carta no encontrada.")
+
+    if carta.pago_confirmado:
+        return {"status": "ya_confirmado", "mensaje": "El pago de esta orden ya estaba confirmado."}
+
+    confirmar_pago(db, carta)
+    return {"status": "confirmado", "mensaje": "Pago confirmado, la orden pasa a pendientes."}
 
 
 @router.get("/admin/carta/{carta_id}", dependencies=[Depends(verificar_admin_secret)])
@@ -102,6 +138,12 @@ def aprobar_envio(carta_id: int, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=409,
             detail="Esta carta no tiene interpretacion completa. Usa /admin/generar-interpretacion primero.",
+        )
+
+    if carta.email is not None and not carta.pago_confirmado:
+        raise HTTPException(
+            status_code=409,
+            detail="El pago de esta orden no esta confirmado. Usa /admin/confirmar-pago primero.",
         )
 
     if carta.enviado:

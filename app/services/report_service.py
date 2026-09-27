@@ -1,5 +1,7 @@
+from functools import lru_cache
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup
+import base64
 import os
 
 from app.domain.rueda_natal_service import generar_rueda_svg, SIMBOLOS_PLANETAS
@@ -94,6 +96,18 @@ def generar_html_calculo(metadata: dict, calculo: dict) -> str:
     )
 
 
+@lru_cache(maxsize=1)
+def _portada_data_uri() -> str:
+    """
+    Imagen de portada embebida como data URI (~100 KB): la vista previa se
+    abre como blob desde el panel e imprime a PDF, asi que no puede depender
+    de una URL relativa a la API.
+    """
+    ruta = os.path.join(_RUTA_TEMPLATES, "assets", "portada-celeste.jpg")
+    with open(ruta, "rb") as f:
+        return "data:image/jpeg;base64," + base64.b64encode(f.read()).decode("ascii")
+
+
 def _seccion_valida(datos: dict | None) -> dict | None:
     """None si la seccion no existe; se deja tal cual si trae _validation_error
     (el template la muestra como error para regenerarla desde el panel)."""
@@ -120,5 +134,6 @@ def generar_html_vista_previa(
         transitos=_seccion_valida(transitos),
         rueda_svg=Markup(generar_rueda_svg(calculo)),
         simbolos=SIMBOLOS_PLANETAS,
+        portada_url=_portada_data_uri(),
     )
     return template.render(**contexto)
